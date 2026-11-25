@@ -42,24 +42,20 @@
     }, { passive: true });
     var wheelAt = 0;
     document.addEventListener("wheel", function (e) { if (Math.abs(e.deltaY) < 30 || Date.now() - wheelAt < 900) return; wheelAt = Date.now(); feed.KLIK_FEED.step(e.deltaY > 0 ? 1 : -1); }, { passive: true });
-    // Each game's menu also lists all the games, so either player can jump straight to one.
+    // In the feed, each game's menu is just a way back Home.
     document.addEventListener("DOMContentLoaded", function () {
       var menu = document.getElementById("menu"); if (!menu) return;
       var adding = false;
       new MutationObserver(function () {
         if (adding || menu.hidden || menu.querySelector(".klik-games")) return;
         adding = true;
-        // Keep the menu short in the feed: just the games. Rounds, solo and invite already have their own buttons on screen.
+        // Keep the menu short in the feed: just Home. Rounds, solo and invite already have their own buttons on screen.
         [].slice.call(menu.children).forEach(function (el) {
           if (el.classList.contains("sep") || /^(Play another round|Play on two phones|Play solo|Play with a friend|New game)$/.test((el.textContent || "").trim())) el.hidden = true;
         });
         var box = document.createElement("div"); box.className = "klik-games"; box.style.cssText = "display:flex;flex-direction:column;gap:4px";
-        feed.KLIK_FEED.games.forEach(function (g, i) {
-          var b = document.createElement("button"); b.type = "button"; b.className = "item"; b.textContent = g.name;
-          if (i === feed.KLIK_FEED.current()) b.setAttribute("aria-current", "true");
-          b.addEventListener("click", function () { menu.hidden = true; var mb = document.getElementById("menubtn"); if (mb) mb.setAttribute("aria-expanded", "false"); feed.KLIK_FEED.jump(i); });
-          box.append(b);
-        });
+        var home = document.createElement("a"); home.className = "item"; home.textContent = "Home"; home.href = "./"; home.target = "_top"; home.style.textDecoration = "none";
+        box.append(home);
         menu.append(box);
         adding = false;
       }).observe(menu, { childList: true, attributes: true, attributeFilter: ["hidden"] });
