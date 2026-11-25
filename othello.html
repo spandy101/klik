@@ -84,8 +84,8 @@ h1 { font-weight: 700; font-size: 2.3rem; margin: 0; line-height: 1; }
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="firebase-config.js?v=a81200d1"></script>
-<script src="klik-sync.js?v=a81200d1"></script>
+<script src="firebase-config.js?v=77233f0d"></script>
+<script src="klik-sync.js?v=77233f0d"></script>
 </head>
 <body>
 <div class="wrap">
@@ -176,6 +176,41 @@ h1 { font-weight: 700; font-size: 2.3rem; margin: 0; line-height: 1; }
     a[1 * N + 1] = "b"; a[2 * N + 2] = "b"; a[1 * N + 2] = "a"; a[2 * N + 1] = "a";
     return a.join("");
   }
+  // Perfect-play result for the side to move (its discs minus the other's at the end). Small board, so a full search is quick.
+  function solve(cells, p, alpha = -99, beta = 99, passed = false) {
+    const m = legal(cells, p);
+    if (!m.length) {
+      if (passed) return count(cells, p) - count(cells, other(p));
+      return -solve(cells, other(p), -beta, -alpha, true);
+    }
+    let best = -99;
+    for (const i of m) {
+      const v = -solve(play(cells, i, p), other(p), -beta, -alpha, false);
+      if (v > best) best = v;
+      if (v > alpha) alpha = v;
+      if (alpha >= beta) break;
+    }
+    return best;
+  }
+  // A different start every round: the classic four discs plus a few random opening moves, kept only if
+  // perfect play ends in a draw, so neither colour starts ahead.
+  function balancedStart() {
+    let fallback = null;
+    for (let tries = 0; tries < 300; tries++) {
+      let cells = opening(), p = "a", ok = true;
+      const plies = 2 + rnd(3);
+      for (let k = 0; k < plies; k++) {
+        const m = legal(cells, p);
+        if (!m.length) { ok = false; break; }
+        cells = play(cells, m[rnd(m.length)], p); p = other(p);
+      }
+      if (!ok || !legal(cells, p).length) continue;
+      const v = solve(cells, p);
+      if (v === 0) return { cells, turn: p };
+      if (Math.abs(v) <= 2 && !fallback) fallback = { cells, turn: p };
+    }
+    return fallback || { cells: opening(), turn: "a" };
+  }
   const G = {
     key: "othello",
     botDelay: 1200,
@@ -184,10 +219,12 @@ h1 { font-weight: 700; font-size: 2.3rem; margin: 0; line-height: 1; }
     intro: "Tap a dot to play. Most discs wins.",
     valid: (d) => d && d.v === 2 && typeof d.cells === "string" && d.cells.length === N * N,
     fresh(prev) {
-      const starter = prev ? (prev.moves.length ? other(prev.starter) : prev.starter) : "a";
-      const cells = opening();
-      return { v: 2, cells, flipped: [], turn: starter, starter, moves: [], last: -1, passed: null, over: false,
-               seats: prev ? clone(prev.seats) : { a: null, b: null } };
+      const { cells, turn } = balancedStart();
+      // Swap colours after each played round, so both players take turns being Black and White.
+      const seats = prev ? clone(prev.seats) : { a: null, b: null };
+      const swap = prev && prev.moves.length && mode === "online";
+      return { v: 2, cells, flipped: [], turn, starter: turn, moves: [], last: -1, passed: null, over: false,
+               seats: swap ? { a: seats.b, b: seats.a } : seats };
     },
     started: (s) => s.moves.length > 0,
     over: (s) => s.over,
@@ -201,7 +238,10 @@ h1 { font-weight: 700; font-size: 2.3rem; margin: 0; line-height: 1; }
       }
       const you = me ? `You ${count(s.cells, me)}, ${NAME[other(me)]} ${count(s.cells, other(me))}.` : `Black ${A}, White ${B}.`;
       const pass = s.passed ? `${s.passed === me ? "You have" : NAME[s.passed] + " has"} no move. ` : "";
-      if (!s.moves.length && !pass) return s.turn === me ? `You go first. The dots are where you can trap a disc.` : `${NAME[s.turn]} goes first. ${you}`;
+      if (!s.moves.length && !pass) {
+        if (!me) return `${NAME[s.turn]} goes first. ${you}`;
+        return s.turn === me ? `You're ${NAME[me].toLowerCase()} and you go first. The dots are where you can trap a disc.` : `You're ${NAME[me].toLowerCase()}. ${NAME[s.turn]} goes first.`;
+      }
       return s.turn === me ? `${pass}Your turn. ${you}` : `${pass}${NAME[s.turn]}'s turn. ${you}`;
     },
     draw() {
@@ -330,7 +370,7 @@ h1 { font-weight: 700; font-size: 2.3rem; margin: 0; line-height: 1; }
   $("again").addEventListener("click", () => (G.again ? G.again() : newRound()));
   $("practice").addEventListener("click", startPractice);
   $("friend").addEventListener("click", startOnline);
-  const GAME_LINK = location.origin + location.pathname + "#" + table;
+  const GAME_LINK = window.KLIK_INVITE_LINK(table);
   $("invite").addEventListener("click", () => {
     const show = (msg) => { const n = $("invitelink"); n.textContent = msg; n.hidden = false; };
     const fallback = () => show("Copy this link and send it on WhatsApp: " + GAME_LINK);
