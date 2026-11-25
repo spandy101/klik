@@ -262,7 +262,7 @@ h1 { font-weight: 700; font-size: 2.3rem; margin: 0; line-height: 1; }
     robotTimer = setTimeout(() => {
       if (mode !== "robot" || state.winner || state.turn !== ROBOT) return;
       const s = clone(state); place(s, robotMove(s)); commit(s);
-    }, 650);
+    }, 1200);   // same pause as the Othello robot, so you can see your move land first
   }
   function canUndo() {
     if (!state || !state.moves.length) return false;
