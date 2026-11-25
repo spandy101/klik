@@ -54,7 +54,7 @@
           if (el.classList.contains("sep") || /^(Play another round|Play on two phones|Play solo|Play with a friend|New game)$/.test((el.textContent || "").trim())) el.hidden = true;
         });
         var box = document.createElement("div"); box.className = "klik-games"; box.style.cssText = "display:flex;flex-direction:column;gap:4px";
-        var home = document.createElement("a"); home.className = "item"; home.textContent = "Home"; home.href = "./"; home.target = "_top"; home.style.textDecoration = "none";
+        var home = document.createElement("a"); home.className = "item"; home.textContent = "Home"; home.href = "./" + feed.location.hash; home.target = "_top"; home.style.textDecoration = "none";
         box.append(home);
         menu.append(box);
         adding = false;

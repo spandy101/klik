@@ -78,6 +78,11 @@ body {
       <div><b>Bird's Eye View</b><small>Spot the view from above</small></div><span class="mins">3 min</span>
     </a>
   </nav>
+  <script>
+    // keep-session: coming Home from a game with a friend keeps the same session, so picking a game here takes you both there.
+    (function () { var c = location.hash.slice(1).replace(/[^A-Za-z0-9-]/g, ""); if (!c) return;
+      document.querySelectorAll(".game").forEach(function (a) { a.href = a.getAttribute("href") + "#" + c; }); })();
+  </script>
 </div>
 </body>
 </html>
