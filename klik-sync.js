@@ -49,8 +49,11 @@
       new MutationObserver(function () {
         if (adding || menu.hidden || menu.querySelector(".klik-games")) return;
         adding = true;
+        // Keep the menu short in the feed: just the games. Rounds, solo and invite already have their own buttons on screen.
+        [].slice.call(menu.children).forEach(function (el) {
+          if (el.classList.contains("sep") || /^(Play another round|Play on two phones|Play solo|Play with a friend|New game)$/.test((el.textContent || "").trim())) el.hidden = true;
+        });
         var box = document.createElement("div"); box.className = "klik-games"; box.style.cssText = "display:flex;flex-direction:column;gap:4px";
-        var sep = document.createElement("div"); sep.className = "sep"; box.append(sep);
         feed.KLIK_FEED.games.forEach(function (g, i) {
           var b = document.createElement("button"); b.type = "button"; b.className = "item"; b.textContent = g.name;
           if (i === feed.KLIK_FEED.current()) b.setAttribute("aria-current", "true");
