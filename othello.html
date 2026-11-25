@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<meta property="og:title" content="Klik Othello">
+<meta property="og:description" content="Tiny games, together.">
+<meta name="description" content="Tiny games, together.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Klik Othello</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Fredoka:wght@600&display=swap">
+<style>
+/* One screen like the Oboe references: menu knob + brand, title with a round knob, the board, one status line. Single look on purpose. */
+:root {
+  --felt: #234536;
+  --felt-stripe: #29503F;
+  --knob: #4E7F67;
+  --outline: #10291F;
+  --cream: #FFF5E1;
+  --gold: #D9A53A;
+  --gold-deep: #A87A1E;
+  --red: #EE6A5A;
+  --red-deep: #C24A3C;
+  --blue: #3550A8;
+  --blue-deep: #243A80;
+  --yellow: #F2C14E;
+  --green: #4FA36B;
+  --muted: #8FBFA6;
+  --ink: #FFF5E1;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  margin: 0; color: var(--ink); font-family: var(--display); font-size: 18px; line-height: 1.4;
+  background-color: var(--felt);
+  background-image: repeating-linear-gradient(135deg, var(--felt) 0 14px, var(--felt-stripe) 14px 17px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 20px; box-sizing: border-box;
+}
+.wrap { max-width: 560px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; position: relative; }
+.top { display: flex; align-items: center; gap: 16px; }
+.brand { font-family: "Fredoka", "Nunito", "Arial Rounded MT Bold", system-ui, sans-serif; font-weight: 600; font-size: 2.3rem; line-height: 1; letter-spacing: -.02em; color: var(--ink); display: inline-flex; align-items: baseline; padding-top: .2em; }
+.brand .i { position: relative; }
+.brand .i svg { position: absolute; left: 50%; top: .02em; width: .5em; height: .5em; transform: translate(-50%, -42%); }
+.knob { flex: none; width: 54px; height: 54px; border-radius: 50%; border: 3px solid var(--outline); background: var(--knob); color: var(--cream); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 3px 4px 0 var(--outline); padding: 0; }
+.knob:active { transform: translate(2px, 3px); box-shadow: 1px 1px 0 var(--outline); }
+.knob:disabled { opacity: .45; cursor: default; }
+.knob:focus-visible, .item:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.knob svg { width: 26px; height: 26px; }
+.game { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 18px; padding-block: 24px 40px; }
+.titlerow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+h1 { font-weight: 700; font-size: 2.3rem; margin: 0; line-height: 1; }
+.status { font-weight: 500; font-size: 1.4rem; text-align: center; margin: 0; min-height: 2.8em; text-wrap: balance; }
+.menu { position: absolute; top: 66px; left: 0; z-index: 5; width: min(320px, 100%); background: var(--felt); border: 3px solid var(--outline); border-radius: 20px; box-shadow: 4px 6px 0 var(--outline); padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+.menu[hidden] { display: none; }
+.item { font: inherit; font-size: 1.15rem; text-align: left; color: var(--ink); background: none; border: 0; border-radius: 12px; padding: 12px 14px; cursor: pointer; }
+.item:hover { background: var(--felt-stripe); }
+.item[aria-current="true"]::after { content: "  ✓"; color: var(--gold); }
+.sep { height: 2px; background: var(--outline); margin: 4px 8px; opacity: .6; }
+.again { align-self: center; font: inherit; font-weight: 700; font-size: 1.25rem; min-height: 58px; padding: 10px 28px; border-radius: 999px; border: 3px solid var(--outline); background: var(--gold); color: var(--outline); cursor: pointer; box-shadow: 3px 4px 0 var(--outline); }
+.again:active { transform: translate(2px, 3px); box-shadow: 1px 1px 0 var(--outline); }
+.again:focus-visible { outline: 4px solid var(--cream); outline-offset: 3px; }
+.btnrow { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.btnrow:not(:has(button:not([hidden]))) { display: none; }
+.btnrow .again { font-size: 1.1rem; padding: 10px 22px; }
+.again.alt { background: var(--cream); }
+.note { color: var(--muted); font-size: .95rem; margin: 0; text-align: center; overflow-wrap: anywhere; }
+.pop { animation: pop .28s ease-out; transform-box: fill-box; transform-origin: center; }
+@keyframes pop { from { transform: scale(.6); opacity: .3; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .pop { animation: none; } }
+@media (max-width: 400px) { h1 { font-size: 2rem; } .status { font-size: 1.25rem; } .brand { font-size: 2rem; } }
+#board { width: 100%; max-width: 340px; align-self: center; height: auto; display: block; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+#board .sq.live { cursor: pointer; }
+#board .sq:focus { outline: none; }
+#board .sq.live:focus-visible rect { stroke: #fff; stroke-width: 4; }
+#board .sq.live:hover rect { fill: #4FA36B; }
+.rule { margin: -6px 0 0; font-size: 1.05rem; color: var(--muted); text-wrap: balance; }
+
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="klik-sync.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <button class="knob" id="menubtn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg>
+    </button>
+    <span class="brand" role="img" aria-label="Klik"><span>k</span><span>l</span><span class="i">ı<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2 C22 14 26 18 38 20 C26 22 22 26 20 38 C18 26 14 22 2 20 C14 18 18 14 20 2 Z" fill="#D9A53A" stroke="#10291F" stroke-width="2.5" stroke-linejoin="round"/></svg></span><span>k</span></span>
+  </div>
+  <div class="menu" id="menu" hidden></div>
+  <div class="game">
+    <div class="titlerow">
+      <h1>Othello</h1>
+      <button class="knob" id="roundbtn" type="button" aria-label="New round">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v5h5"/></svg>
+      </button>
+    </div>
+    <p class="rule">Trap the other colour between two of yours to flip them. Most discs wins!</p>
+    <svg id="board" role="grid" aria-label="Othello board"></svg>
+    <p class="status" id="status" role="status" aria-live="polite">Opening the game…</p>
+    <div class="btnrow">
+      <button class="again" id="invite" type="button" hidden>Invite a friend</button>
+      <button class="again alt" id="practice" type="button" hidden>Play solo</button>
+      <button class="again alt" id="friend" type="button" hidden>Play with a friend</button>
+    </div>
+    <p class="note" id="invitelink" hidden></p>
+    <button class="again" id="again" type="button" hidden>Play another round?</button>
+    <p class="note" id="net" hidden></p>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const other = (p) => (p === "a" ? "b" : "a");
+  const table = (location.hash.slice(1).replace(/[^A-Za-z0-9-]/g, "") || "main").slice(0, 40);
+  const SVGNS = "http://www.w3.org/2000/svg";
+  function svg(tag, attrs, parent) { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.append(e); return e; }
+  const rnd = (n) => Math.floor(Math.random() * n);
+  const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  // ---------- shared shell state ----------
+  let mode = "loading";            // "online" | "practice"
+  let state = null, shared = null, ref = null, db0 = null, myId = null, loaded = false;
+  let chain = Promise.resolve(), botTimer = null;
+
+  function localId() {
+    try { let v = localStorage.getItem("klik-id"); if (!v) { v = "p" + Math.random().toString(36).slice(2, 10); localStorage.setItem("klik-id", v); } return v; }
+    catch { return "p" + Math.random().toString(36).slice(2, 10); }
+  }
+  function net(text) { $("net").textContent = text || ""; $("net").hidden = !text; }
+  const mySeat = () => !state ? null : mode === "practice" ? "a" : state.seats.a && state.seats.a.id === myId ? "a" : state.seats.b && state.seats.b.id === myId ? "b" : null;
+  const bothSeated = () => !!(state && state.seats.a && state.seats.b);
+  const watching = () => mode === "online" && loaded && state && !mySeat() && bothSeated();
+  const waitingForFriend = () => mode === "online" && loaded && mySeat() && !bothSeated();
+
+  function commit(next) {
+    state = next; render();
+    if (mode !== "online" || !ref) return;
+    chain = chain.then(() => ref.set(next)).then(() => net("")).catch((e) => {
+      net(e && (e.code === "invalid_argument" || e.code === "permission_denied" || e.code === "not_granted")
+        ? "You can watch but not play. Ask the person who sent this game for Contributor access."
+        : "That move didn't save. Check the internet connection and try again.");
+    });
+  }
+  function update(fn) { if (!state) return; const s = clone(state); if (fn(s) === false) return; commit(s); scheduleBot(); }
+
+  // ---------- Othello, small: 4x4 from the classic opening ----------
+  const N = 4;
+  const DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+  const NAME = { a: "Black", b: "White" };
+  function flips(cells, i, p) {
+    if (cells[i] !== ".") return [];
+    const r0 = Math.floor(i / N), c0 = i % N, q = other(p), out = [];
+    for (const [dr, dc] of DIRS) {
+      const run = []; let r = r0 + dr, c = c0 + dc;
+      while (r >= 0 && r < N && c >= 0 && c < N && cells[r * N + c] === q) { run.push(r * N + c); r += dr; c += dc; }
+      if (run.length && r >= 0 && r < N && c >= 0 && c < N && cells[r * N + c] === p) out.push(...run);
+    }
+    return out;
+  }
+  const legal = (cells, p) => { const m = []; for (let i = 0; i < N * N; i++) if (flips(cells, i, p).length) m.push(i); return m; };
+  const count = (cells, p) => cells.split(p).length - 1;
+  function play(cells, i, p) { const a = cells.split(""); a[i] = p; for (const j of flips(cells, i, p)) a[j] = p; return a.join(""); }
+  function opening() {
+    const a = Array(N * N).fill(".");
+    a[1 * N + 1] = "b"; a[2 * N + 2] = "b"; a[1 * N + 2] = "a"; a[2 * N + 1] = "a";
+    return a.join("");
+  }
+  const G = {
+    key: "othello",
+    botDelay: 1200,
+    seatName: NAME,
+    practiceLabel: "Play solo",
+    intro: "Tap a dot to play. Most discs wins.",
+    valid: (d) => d && d.v === 2 && typeof d.cells === "string" && d.cells.length === N * N,
+    fresh(prev) {
+      const starter = prev ? (prev.moves.length ? other(prev.starter) : prev.starter) : "a";
+      const cells = opening();
+      return { v: 2, cells, flipped: [], turn: starter, starter, moves: [], last: -1, passed: null, over: false,
+               seats: prev ? clone(prev.seats) : { a: null, b: null } };
+    },
+    started: (s) => s.moves.length > 0,
+    over: (s) => s.over,
+    waitText: (me) => `You're ${NAME[me].toLowerCase()}. Invite a friend to play ${NAME[other(me)].toLowerCase()}.`,
+    status() {
+      const s = state, me = mySeat(), A = count(s.cells, "a"), B = count(s.cells, "b");
+      if (s.over) {
+        if (A === B) return `A tie, ${A} each.`;
+        const w = A > B ? "a" : "b", hi = Math.max(A, B), lo = Math.min(A, B);
+        return w === me ? `You win, ${hi} to ${lo}!` : `${NAME[w]} wins, ${hi} to ${lo}.`;
+      }
+      const you = me ? `You ${count(s.cells, me)}, ${NAME[other(me)]} ${count(s.cells, other(me))}.` : `Black ${A}, White ${B}.`;
+      const pass = s.passed ? `${s.passed === me ? "You have" : NAME[s.passed] + " has"} no move. ` : "";
+      if (!s.moves.length && !pass) return s.turn === me ? `You go first. The dots are where you can trap a disc.` : `${NAME[s.turn]} goes first. ${you}`;
+      return s.turn === me ? `${pass}Your turn. ${you}` : `${pass}${NAME[s.turn]}'s turn. ${you}`;
+    },
+    draw() {
+      const board = $("board"); board.replaceChildren();
+      const S = 50, pad = 10, depth = 7, W = N * S;
+      board.setAttribute("viewBox", `${-pad} ${-pad} ${W + 2 * pad + depth} ${W + 2 * pad + depth}`);
+      svg("rect", { x: -pad + depth, y: -pad + depth, width: W + 2 * pad, height: W + 2 * pad, rx: 16, fill: "var(--outline)" }, board);
+      svg("rect", { x: -pad, y: -pad, width: W + 2 * pad, height: W + 2 * pad, rx: 16, fill: "var(--gold-deep)", stroke: "var(--outline)", "stroke-width": 4 }, board);
+      const cells = state ? state.cells : "";
+      const me = mySeat();
+      const act = state && !state.over && bothSeated() && me && state.turn === me && !(mode === "practice" && state.turn === "b");
+      const hints = new Set(act ? legal(state.cells, me) : []);
+      // Show the other side's allowed squares too, in their colour, so it's clear why they can play there.
+      const theirs = new Set(state && !state.over && !act ? legal(state.cells, state.turn) : []);
+      for (let i = 0; i < N * N; i++) {
+        const r = Math.floor(i / N), c = i % N, x = c * S, y = r * S, v = cells[i] || ".";
+        const g = svg("g", { class: "sq" + (hints.has(i) ? " live" : ""), role: "gridcell", tabindex: hints.has(i) ? "0" : "-1",
+          "aria-label": `${String.fromCharCode(65 + c)}${r + 1}, ${v === "." ? (hints.has(i) ? "you can play here" : "empty") : NAME[v]}` }, board);
+        svg("rect", { x: x + 2, y: y + 2, width: S - 4, height: S - 4, rx: 7, fill: (r + c) % 2 ? "#3E8A5E" : "#43925F", stroke: "var(--outline)", "stroke-width": 2 }, g);
+        if (v !== ".") {
+          const d = svg("g", { class: state.last === i || (state.flipped || []).includes(i) ? "pop" : "" }, g);
+          svg("circle", { cx: x + S / 2 + 2, cy: y + S / 2 + 3, r: S * 0.36, fill: "var(--outline)" }, d);
+          svg("circle", { cx: x + S / 2, cy: y + S / 2, r: S * 0.36, fill: v === "a" ? "#26231F" : "var(--cream)", stroke: "var(--outline)", "stroke-width": 2.5 }, d);
+          if (state.last === i) svg("circle", { cx: x + S / 2, cy: y + S / 2, r: 5, fill: "var(--gold)" }, g);
+        } else if (theirs.has(i)) {
+          svg("circle", { cx: x + S / 2, cy: y + S / 2, r: 7, fill: state.turn === "a" ? "rgba(38,35,31,.55)" : "rgba(255,245,225,.35)", stroke: "rgba(16,41,31,.5)", "stroke-width": 1.5, "stroke-dasharray": "3 3" }, g);
+        } else if (hints.has(i)) {
+          svg("circle", { cx: x + S / 2, cy: y + S / 2, r: 7, fill: "rgba(255,245,225,.55)" }, g);
+          const go = () => G.move(i);
+          g.addEventListener("click", go);
+          g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+        }
+      }
+    },
+    move(i) { update((s) => step(s, i)); },
+    bot(s) {
+      if (s.over || s.turn !== "b") return null;
+      return (t) => {
+        const m = legal(t.cells, "b"); if (!m.length) return false;
+        const corner = m.filter((i) => [0, N - 1, N * (N - 1), N * N - 1].includes(i));
+        const pick = corner.length ? corner[0] : m.map((i) => ({ i, v: flips(t.cells, i, "b").length + Math.random() * 1.5 })).sort((x, y) => y.v - x.v)[0].i;
+        step(t, pick);
+      };
+    },
+  };
+  function step(s, i) {
+    const p = s.turn;
+    if (!flips(s.cells, i, p).length) return false;
+    s.flipped = flips(s.cells, i, p); s.cells = play(s.cells, i, p); s.moves.push(i); s.last = i; s.passed = null;
+    const q = other(p);
+    if (legal(s.cells, q).length) s.turn = q;
+    else if (legal(s.cells, p).length) { s.turn = p; s.passed = q; }
+    else s.over = true;
+  }
+
+
+  // ---------- seats and rounds ----------
+  function newRound() {
+    clearTimeout(botTimer);
+    const s = G.fresh(state);
+    commit(s); scheduleBot();
+  }
+  function takeSeat(seat) {
+    const s = state ? clone(state) : G.fresh(null);
+    for (const k of ["a", "b"]) if (s.seats[k] && s.seats[k].id === myId) s.seats[k] = null;
+    s.seats[seat] = { id: myId };
+    commit(s);
+  }
+  function autoSeat() {
+    if (mode !== "online" || !loaded || mySeat()) return;
+    if (!state) return takeSeat("a");
+    if (!state.seats.a) return takeSeat("a");
+    if (!state.seats.b) return takeSeat("b");
+  }
+  function scheduleBot() {
+    clearTimeout(botTimer);
+    if (mode !== "practice" || !G.bot || !state) return;
+    const step = G.bot(state);
+    if (!step) return;
+    botTimer = setTimeout(() => { if (mode === "practice") update(step); }, G.botDelay || 650);
+  }
+  function startPractice() { clearTimeout(botTimer); mode = "practice"; state = G.fresh(null); state.seats = { a: { id: "me" }, b: G.practiceB === false ? null : { id: "bot" } }; render(); scheduleBot(); }
+  function startOnline() { clearTimeout(botTimer); mode = "online"; state = shared; render(); autoSeat(); }
+
+  // ---------- menu ----------
+  function item(label, fn, current) {
+    const b = document.createElement("button");
+    b.className = "item"; b.type = "button"; b.textContent = label;
+    if (current) b.setAttribute("aria-current", "true");
+    b.addEventListener("click", () => { closeMenu(); fn(); });
+    return b;
+  }
+  function buildMenu() {
+    const m = $("menu"); m.replaceChildren();
+    m.append(item("Play another round", newRound));
+    const sep = document.createElement("div"); sep.className = "sep"; m.append(sep);
+    if (db0) m.append(item("Play on two phones", startOnline, mode === "online"));
+    m.append(item(G.practiceLabel, startPractice, mode === "practice"));
+    if (watching()) { m.append(item(`Take ${G.seatName.a}'s place`, () => takeSeat("a"))); m.append(item(`Take ${G.seatName.b}'s place`, () => takeSeat("b"))); }
+  }
+  function openMenu() { buildMenu(); $("menu").hidden = false; $("menubtn").setAttribute("aria-expanded", "true"); const f = $("menu").querySelector("button"); if (f) f.focus(); }
+  function closeMenu() { $("menu").hidden = true; $("menubtn").setAttribute("aria-expanded", "false"); }
+  $("menubtn").addEventListener("click", () => ($("menu").hidden ? openMenu() : closeMenu()));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
+  document.addEventListener("click", (e) => { if (!$("menu").hidden && !e.target.closest("#menu") && !e.target.closest("#menubtn")) closeMenu(); });
+
+  // ---------- render ----------
+  let confirmNew = false, confirmTimer = null;
+  function render() {
+    G.draw();
+    let text;
+    if (!state) text = mode === "online" && !loaded ? "Opening the game…" : G.intro;
+    else if (watching()) text = "Two people are playing. You're watching.";
+    else if (waitingForFriend()) text = G.waitText(mySeat());
+    else text = G.status();
+    $("status").textContent = confirmNew ? "Tap again to start a new round." : text;
+    $("roundbtn").disabled = mode === "online" && !mySeat();
+    $("again").hidden = !(state && G.over(state) && (mode !== "online" || mySeat()));
+    $("again").textContent = (state && G.againText && G.againText(state)) || "Play another round?";
+    $("invite").hidden = !waitingForFriend();
+    $("practice").hidden = !waitingForFriend();
+    $("friend").hidden = !(mode === "practice" && db0);
+    if ($("invite").hidden) $("invitelink").hidden = true;
+    if (!$("menu").hidden) buildMenu();
+  }
+  $("again").addEventListener("click", () => (G.again ? G.again() : newRound()));
+  $("practice").addEventListener("click", startPractice);
+  $("friend").addEventListener("click", startOnline);
+  const GAME_LINK = location.origin + location.pathname + "#" + table;
+  $("invite").addEventListener("click", () => {
+    const show = (msg) => { const n = $("invitelink"); n.textContent = msg; n.hidden = false; };
+    const fallback = () => show("Copy this link and send it on WhatsApp: " + GAME_LINK);
+    try {
+      navigator.clipboard.writeText(GAME_LINK).then(() => { $("invite").textContent = "Link copied!"; show("Paste it in your WhatsApp chat. " + GAME_LINK); setTimeout(() => { $("invite").textContent = "Invite a friend"; }, 2500); }, fallback);
+    } catch { fallback(); }
+  });
+  // The round arrow starts a new round for both players. Mid-round it asks for a second tap first.
+  $("roundbtn").addEventListener("click", () => {
+    if (!state || (G.done ? G.done(state) : G.over(state)) || !G.started(state) || confirmNew) { confirmNew = false; clearTimeout(confirmTimer); newRound(); return; }
+    confirmNew = true; render();
+    confirmTimer = setTimeout(() => { confirmNew = false; render(); }, 3000);
+  });
+
+  // ---------- connect ----------
+  async function start() {
+    const claude = window.claude;
+    if (!claude || !claude.use) return startPractice();
+    const db = await claude.use("db");
+    if (!db) return startPractice();
+    db0 = db; mode = "online";
+    // Seats belong to a device, not an account, so two phones on the same Claude account still get both seats.
+    myId = localId();
+    ref = db.doc(G.key + "/" + table);
+    const timer = setTimeout(() => { if (!loaded) net("Can't reach the game yet. Check the internet connection; it will keep trying."); }, 10000);
+    ref.onSnapshot((snap) => {
+      const firstLive = !loaded && !snap.metadata.fromCache;
+      if (!snap.metadata.fromCache) { loaded = true; clearTimeout(timer); net(""); }
+      shared = snap.exists && G.valid(snap.data()) ? clone(snap.data()) : null;
+      if (mode === "online") { state = shared; render(); if (firstLive) autoSeat(); }
+    }, () => { clearTimeout(timer); net("The game connection stopped. Reload the page to reconnect."); });
+    render();
+  }
+  render();
+  start().catch(() => startPractice());
+})();
+</script>
+</body>
+</html>

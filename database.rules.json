@@ -1,0 +1,13 @@
+{
+  "rules": {
+    "klik": {
+      "$game": {
+        "$table": {
+          ".read": true,
+          ".write": true,
+          ".validate": "newData.hasChildren(['json']) && newData.child('json').isString() && newData.child('json').val().length < 20000"
+        }
+      }
+    }
+  }
+}

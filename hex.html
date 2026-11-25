@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<meta property="og:title" content="Klik Hex">
+<meta property="og:description" content="Tiny games, together.">
+<meta name="description" content="Tiny games, together.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Klik Hex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Fredoka:wght@600&display=swap">
+<style>
+/* Layout: one screen. Menu knob + brand on top, then the title with an undo knob, the board, and one status line, centred. Single dark look on purpose. */
+:root {
+  --felt: #1E5A4F;
+  --felt-stripe: #22655A;
+  --knob: #4E8D7E;
+  --outline: #10291F;
+  --cream: #FFF5E1;
+  --gold: #D9A53A;
+  --gold-deep: #A87A1E;
+  --red: #EE6A5A;
+  --red-deep: #C24A3C;
+  --blue: #3550A8;
+  --blue-deep: #243A80;
+  --muted: #B9D6CE;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  margin: 0; color: var(--cream); font-family: var(--display); font-size: 18px; line-height: 1.4;
+  background-color: var(--felt);
+  background-image: repeating-linear-gradient(135deg, var(--felt) 0 14px, var(--felt-stripe) 14px 17px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 20px; box-sizing: border-box;
+}
+.wrap { max-width: 560px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; position: relative; }
+.top { display: flex; align-items: center; gap: 16px; }
+.brand { font-family: "Fredoka", "Nunito", "Arial Rounded MT Bold", system-ui, sans-serif; font-weight: 600; font-size: 2.3rem; line-height: 1; letter-spacing: -.02em; color: var(--cream); display: inline-flex; align-items: baseline; padding-top: .2em; }
+.brand .i { position: relative; }
+.brand .i svg { position: absolute; left: 50%; top: .02em; width: .5em; height: .5em; transform: translate(-50%, -42%); }
+.knob { flex: none; width: 54px; height: 54px; border-radius: 50%; border: 3px solid var(--outline); background: var(--knob); color: var(--cream); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 3px 4px 0 var(--outline); padding: 0; }
+.knob:active { transform: translate(2px, 3px); box-shadow: 1px 1px 0 var(--outline); }
+.knob:disabled { opacity: .45; cursor: default; }
+.knob:focus-visible, .item:focus-visible, .size:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.knob svg { width: 26px; height: 26px; }
+.game { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 18px; padding-block: 24px 40px; }
+.titlerow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+h1 { font-weight: 700; font-size: 2.3rem; margin: 0; line-height: 1; }
+#board { width: 100%; height: auto; display: block; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+#board .cell { cursor: pointer; }
+#board .cell.off { cursor: default; }
+#board .cell:focus { outline: none; }
+#board .cell:focus-visible .hx { stroke: #fff; }
+#board .cell.hover:hover .hx.empty { fill: #FFFFFF; }
+.drop { animation: drop .28s ease-out; transform-box: fill-box; transform-origin: center; }
+@keyframes drop { from { transform: scale(.6); opacity: .3; } to { transform: scale(1); opacity: 1; } }
+.status { font-weight: 500; font-size: 1.4rem; text-align: center; margin: 0; min-height: 2.8em; text-wrap: balance; }
+
+.menu { position: absolute; top: 66px; left: 0; z-index: 5; width: min(320px, 100%); background: var(--felt); border: 3px solid var(--outline); border-radius: 20px; box-shadow: 4px 6px 0 var(--outline); padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+.menu[hidden] { display: none; }
+.item { font: inherit; font-size: 1.15rem; text-align: left; color: var(--cream); background: none; border: 0; border-radius: 12px; padding: 12px 14px; cursor: pointer; }
+.item:hover { background: var(--felt-stripe); }
+.item[aria-current="true"]::after { content: "  ✓"; color: var(--gold); }
+.sizes { display: flex; gap: 8px; align-items: center; padding: 8px 14px; color: var(--muted); font-size: 1.05rem; }
+.size { font: inherit; font-weight: 700; min-height: 44px; min-width: 56px; border-radius: 999px; border: 3px solid var(--outline); background: var(--knob); color: var(--cream); cursor: pointer; }
+.size[aria-pressed="true"] { background: var(--cream); color: var(--outline); }
+.sep { height: 2px; background: var(--outline); margin: 4px 8px; opacity: .6; }
+.again { align-self: center; font: inherit; font-weight: 700; font-size: 1.25rem; min-height: 58px; padding: 10px 28px; border-radius: 999px; border: 3px solid var(--outline); background: var(--gold); color: var(--outline); cursor: pointer; box-shadow: 3px 4px 0 var(--outline); }
+.again:active { transform: translate(2px, 3px); box-shadow: 1px 1px 0 var(--outline); }
+.again:focus-visible { outline: 4px solid var(--cream); outline-offset: 3px; }
+.btnrow { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.btnrow:not(:has(button:not([hidden]))) { display: none; }
+.btnrow .again { font-size: 1.1rem; padding: 10px 22px; }
+.again.alt { background: var(--cream); }
+.note { color: var(--muted); font-size: .95rem; margin: 0; text-align: center; overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) { .drop { animation: none; } }
+@media (max-width: 400px) { h1 { font-size: 2rem; } .status { font-size: 1.25rem; } .brand { font-size: 2rem; } }
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="klik-sync.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <button class="knob" id="menubtn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg>
+    </button>
+    <span class="brand" role="img" aria-label="Klik"><span>k</span><span>l</span><span class="i">ı<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2 C22 14 26 18 38 20 C26 22 22 26 20 38 C18 26 14 22 2 20 C14 18 18 14 20 2 Z" fill="#D9A53A" stroke="#10291F" stroke-width="2.5" stroke-linejoin="round"/></svg></span><span>k</span></span>
+  </div>
+  <div class="menu" id="menu" hidden></div>
+  <div class="game">
+    <div class="titlerow">
+      <h1>Hex</h1>
+      <button class="knob" id="undo" type="button" aria-label="New round">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v5h5"/></svg>
+      </button>
+    </div>
+    <svg id="board" role="grid" aria-label="Hex board"></svg>
+    <p class="status" id="status" role="status" aria-live="polite">Opening the game…</p>
+    <div class="btnrow">
+      <button class="again" id="invite" type="button" hidden>Invite a friend</button>
+      <button class="again alt" id="practice" type="button" hidden>Play solo</button>
+      <button class="again alt" id="friend" type="button" hidden>Play with a friend</button>
+    </div>
+    <p class="note" id="invitelink" hidden></p>
+    <button class="again" id="again" type="button" hidden>Play another round?</button>
+    <p class="note" id="net" hidden></p>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const other = (p) => (p === "r" ? "b" : "r");
+  const COLOR = { r: "Red", b: "Blue" };
+  const table = (location.hash.slice(1).replace(/[^A-Za-z0-9-]/g, "") || "main").slice(0, 40);
+
+  // ---------- rules ----------
+  const NB = [[-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0]];
+  function neighbours(n, i) {
+    const r = Math.floor(i / n), c = i % n, out = [];
+    for (const [dr, dc] of NB) { const rr = r + dr, cc = c + dc; if (rr >= 0 && rr < n && cc >= 0 && cc < n) out.push(rr * n + cc); }
+    return out;
+  }
+  // Red joins top and bottom; Blue joins left and right.
+  const isStart = (n, p, i) => (p === "r" ? Math.floor(i / n) === 0 : i % n === 0);
+  const isGoal = (n, p, i) => (p === "r" ? Math.floor(i / n) === n - 1 : i % n === n - 1);
+
+  // Fewest empty cells p still needs to fill to join its sides (Infinity if blocked).
+  function need(cells, n, p) {
+    const dist = new Array(n * n).fill(Infinity), dq = [];
+    const cost = (i) => (cells[i] === p ? 0 : cells[i] === "." ? 1 : Infinity);
+    for (let i = 0; i < n * n; i++) if (isStart(n, p, i) && cost(i) < Infinity) { dist[i] = cost(i); dq.push(i); }
+    // small boards: simple repeated relaxation (Dijkstra-ish with a sorted queue)
+    while (dq.length) {
+      dq.sort((a, b) => dist[a] - dist[b]);
+      const i = dq.shift();
+      for (const j of neighbours(n, i)) {
+        const d = dist[i] + cost(j);
+        if (d < dist[j]) { dist[j] = d; dq.push(j); }
+      }
+    }
+    let best = Infinity;
+    for (let i = 0; i < n * n; i++) if (isGoal(n, p, i)) best = Math.min(best, dist[i]);
+    return best;
+  }
+  // Winning chain (cells), or null.
+  function winPath(cells, n, p) {
+    const prev = new Map(), q = [];
+    for (let i = 0; i < n * n; i++) if (isStart(n, p, i) && cells[i] === p) { prev.set(i, -1); q.push(i); }
+    while (q.length) {
+      const i = q.shift();
+      if (isGoal(n, p, i)) { const path = []; for (let k = i; k !== -1; k = prev.get(k)) path.push(k); return path; }
+      for (const j of neighbours(n, i)) if (cells[j] === p && !prev.has(j)) { prev.set(j, i); q.push(j); }
+    }
+    return null;
+  }
+
+  // A different starting board each game: a few red and blue hexes already placed, with both sides equally far from joining.
+  function startBoard(n) {
+    let best = ".".repeat(n * n);
+    for (let tries = 0; tries < 200; tries++) {
+      const k = 2 + Math.floor(Math.random() * 2);   // 2 or 3 of each colour
+      const cells = Array(n * n).fill(".");
+      const free = [...Array(n * n).keys()].sort(() => Math.random() - 0.5);
+      for (let j = 0; j < 2 * k; j++) cells[free[j]] = j < k ? "r" : "b";
+      const c = cells.join(""), nr = need(c, n, "r"), nb = need(c, n, "b");
+      best = c;
+      if (nr === nb && nr >= 3) return c;
+    }
+    return best;
+  }
+  function freshGame(seats, n, starter, score) {
+    return { v: 1, n, cells: startBoard(n), turn: starter || "r", starter: starter || "r", moves: [], winner: null, path: null,
+             seats: seats || { r: null, b: null }, score: score || { r: 0, b: 0 } };
+  }
+  function place(s, i) {
+    const p = s.turn;
+    s.cells = s.cells.slice(0, i) + p + s.cells.slice(i + 1);
+    s.moves.push(i);
+    const path = winPath(s.cells, s.n, p);
+    if (path) { s.winner = p; s.path = path; s.score[p] = (s.score[p] || 0) + 1; }
+    else s.turn = other(p);
+  }
+  function unplace(s) {
+    const i = s.moves.pop(); if (i == null) return;
+    const p = s.cells[i];
+    s.cells = s.cells.slice(0, i) + "." + s.cells.slice(i + 1);
+    if (s.winner) { s.score[s.winner] = Math.max(0, (s.score[s.winner] || 0) - 1); s.winner = null; s.path = null; }
+    s.turn = p;
+  }
+
+  // Practice robot: pick the empty cell that best shortens its own route while lengthening yours.
+  function robotMove(s) {
+    const n = s.n, me = s.turn, you = other(me), empties = [];
+    for (let i = 0; i < n * n; i++) if (s.cells[i] === ".") empties.push(i);
+    if (s.moves.length === 0) { const mid = Math.floor(n / 2); return mid * n + mid; }
+    const scored = empties.map((i) => {
+      const c = s.cells.slice(0, i) + me + s.cells.slice(i + 1);
+      const mine = need(c, n, me), yours = need(c, n, you);
+      if (mine === 0) return { i, v: -1e9 };
+      const c2 = s.cells.slice(0, i) + you + s.cells.slice(i + 1);
+      const theirsIfThey = need(c2, n, you);
+      return { i, v: mine - 1.15 * yours - 0.35 * (yours - theirsIfThey) + Math.random() * 0.6 };
+    }).sort((a, b) => a.v - b.v);
+    // a gentle robot: sometimes takes its second-best idea
+    if (scored.length > 1 && scored[0].v > -1e8 && Math.random() < 0.25) return scored[1].i;
+    return scored[0].i;
+  }
+
+  // ---------- state ----------
+  let mode = "loading";     // "online" | "local" | "robot"
+  let state = null, shared = null, ref = null, db0 = null, myId = null, loaded = false;
+  let chain = Promise.resolve(), lastDrawnMoves = -1, robotTimer = null;
+  const ROBOT = "b";
+
+  function localId() {
+    try { let v = localStorage.getItem("kh-id"); if (!v) { v = "p" + Math.random().toString(36).slice(2, 10); localStorage.setItem("kh-id", v); } return v; }
+    catch { return "p" + Math.random().toString(36).slice(2, 10); }
+  }
+  function net(text) { $("net").textContent = text || ""; $("net").hidden = !text; }
+
+  const mySeat = () => !state ? null : state.seats.r && state.seats.r.id === myId ? "r" : state.seats.b && state.seats.b.id === myId ? "b" : null;
+  const bothSeated = () => state && state.seats.r && state.seats.b;
+  // Whose point of view the status line speaks from.
+  const viewer = () => (mode === "robot" ? "r" : mode === "online" ? mySeat() : null);
+  function canMove() {
+    if (!state || state.winner) return false;
+    if (mode === "local") return true;
+    if (mode === "robot") return state.turn !== ROBOT;
+    return mode === "online" && bothSeated() && mySeat() === state.turn;
+  }
+
+  function commit(next) {
+    state = next; render();
+    if (mode !== "online" || !ref) return;
+    chain = chain.then(() => ref.set(next)).then(() => net("")).catch((e) => {
+      net(e && (e.code === "invalid_argument" || e.code === "permission_denied" || e.code === "not_granted")
+        ? "You can watch but not play. Ask the person who sent this game for Contributor access."
+        : "That move didn't save. Check the internet connection and try again.");
+    });
+  }
+
+  // ---------- actions ----------
+  function tap(i) {
+    if (!canMove() || state.cells[i] !== ".") return;
+    const s = clone(state); place(s, i); commit(s);
+    scheduleRobot();
+  }
+  function scheduleRobot() {
+    clearTimeout(robotTimer);
+    if (mode !== "robot" || !state || state.winner || state.turn !== ROBOT) return;
+    robotTimer = setTimeout(() => {
+      if (mode !== "robot" || state.winner || state.turn !== ROBOT) return;
+      const s = clone(state); place(s, robotMove(s)); commit(s);
+    }, 650);
+  }
+  function canUndo() {
+    if (!state || !state.moves.length) return false;
+    if (mode !== "online") return true;
+    if (!mySeat()) return false;
+    return state.winner ? true : state.cells[state.moves[state.moves.length - 1]] === mySeat();
+  }
+  function undo() {
+    if (state && state.winner) return;
+    if (!canUndo()) return;
+    clearTimeout(robotTimer);
+    const s = clone(state);
+    if (mode === "robot") { unplace(s); while (s.moves.length && s.turn === ROBOT) unplace(s); }
+    else unplace(s);
+    lastDrawnMoves = -1; commit(s);
+  }
+  function newGame(n) {
+    clearTimeout(robotTimer);
+    const starter = state && state.moves.length ? other(state.starter) : (state ? state.starter : "r");
+    const s = freshGame(state ? clone(state.seats) : null, 5, starter, state ? clone(state.score) : null);
+    lastDrawnMoves = -1; commit(s); scheduleRobot();
+  }
+  function takeSeat(seat) {
+    const s = state ? clone(state) : freshGame(null, 5);
+    for (const k of ["r", "b"]) if (s.seats[k] && s.seats[k].id === myId) s.seats[k] = null;
+    s.seats[seat] = { id: myId };
+    commit(s);
+  }
+  function autoSeat() {
+    if (mode !== "online" || !loaded || mySeat()) return;
+    if (!state) return takeSeat("r");
+    if (!state.seats.r) return takeSeat("r");
+    if (!state.seats.b) return takeSeat("b");
+  }
+  function startLocal() {
+    clearTimeout(robotTimer); mode = "local";
+    state = freshGame({ r: { id: "l-r" }, b: { id: "l-b" } }, 5);
+    lastDrawnMoves = -1; render();
+  }
+  function startRobot() {
+    clearTimeout(robotTimer); mode = "robot";
+    state = freshGame({ r: { id: "me" }, b: { id: "bot" } }, 5);
+    lastDrawnMoves = -1; render();
+  }
+  function startOnline() { clearTimeout(robotTimer); mode = "online"; state = shared; lastDrawnMoves = -1; render(); autoSeat(); }
+
+  // ---------- drawing ----------
+  const SVGNS = "http://www.w3.org/2000/svg";
+  function svg(tag, attrs, parent) { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.append(e); return e; }
+
+  function drawBoard() {
+    const board = $("board"); board.replaceChildren();
+    const n = state ? state.n : 5, cells = state ? state.cells : ".".repeat(25);
+    const s = 30, w = Math.sqrt(3) * s, K = 0.95;
+    const P = (r, c) => [w * (c + r / 2), 1.5 * s * r];
+    const corners = [P(-K, -K), P(-K, n - 1 + K), P(n - 1 + K, n - 1 + K), P(n - 1 + K, -K)];
+    const xs = corners.map((p) => p[0]), ys = corners.map((p) => p[1]);
+    const pad = 8, depth = 7;
+    const minX = Math.min(...xs) - pad, minY = Math.min(...ys) - pad;
+    board.setAttribute("viewBox", `${minX} ${minY} ${Math.max(...xs) - minX + pad + depth} ${Math.max(...ys) - minY + pad + depth}`);
+    const pts = (arr) => arr.map((p) => p.map((v) => v.toFixed(2)).join(",")).join(" ");
+    const [TL, TR, BR, BL] = corners;
+    const C = P((n - 1) / 2, (n - 1) / 2);
+    svg("polygon", { points: pts(corners.map(([x, y]) => [x + depth, y + depth])), fill: "var(--outline)" }, board);
+    svg("polygon", { points: pts(corners.map(([x, y]) => [x + depth / 2, y + depth / 2])), fill: "var(--gold-deep)" }, board);
+    svg("polygon", { points: pts([TL, TR, C]), fill: "var(--red)" }, board);
+    svg("polygon", { points: pts([BL, BR, C]), fill: "var(--red)" }, board);
+    svg("polygon", { points: pts([TL, BL, C]), fill: "var(--blue)" }, board);
+    svg("polygon", { points: pts([TR, BR, C]), fill: "var(--blue)" }, board);
+    svg("polygon", { points: pts(corners), fill: "none", stroke: "var(--outline)", "stroke-width": 5, "stroke-linejoin": "round" }, board);
+
+    const hexPts = (cx, cy, rad) => { const a = []; for (let k = 0; k < 6; k++) { const t = Math.PI / 180 * (60 * k - 90); a.push([cx + rad * Math.cos(t), cy + rad * Math.sin(t)]); } return pts(a); };
+    const act = canMove();
+    const win = new Set((state && state.path) || []);
+    const moves = state ? state.moves : [];
+    const last = moves.length ? moves[moves.length - 1] : -1;
+    const fresh = state && moves.length !== lastDrawnMoves && lastDrawnMoves !== -1;
+    const labels = mode === "local";
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+      const i = r * n + c, v = cells[i], [x, y] = P(r, c);
+      const coord = String.fromCharCode(65 + c) + (r + 1);
+      const g = svg("g", { class: "cell" + (v === "." && act ? " hover" : " off"), role: "gridcell", tabindex: v === "." && act ? "0" : "-1",
+        "aria-label": `${coord}, ${v === "." ? "empty" : COLOR[v]}` }, board);
+      svg("polygon", { points: hexPts(x, y, s), fill: "var(--gold)" }, g);
+      const fill = v === "r" ? "var(--red)" : v === "b" ? "var(--blue)" : "var(--cream)";
+      const tile = svg("polygon", { class: "hx" + (v === "." ? " empty" : ""), points: hexPts(x, y, s * 0.84), fill,
+        stroke: win.has(i) ? "#FFFFFF" : v === "r" ? "var(--red-deep)" : v === "b" ? "var(--blue-deep)" : "none", "stroke-width": win.has(i) ? 4 : 2.5 }, g);
+      if (v !== ".") {
+        const len = s * 0.42, bar = v === "r" ? [x, y - len, x, y + len] : [x - len, y, x + len, y];
+        svg("line", { x1: bar[0], y1: bar[1], x2: bar[2], y2: bar[3], stroke: "var(--gold)", "stroke-width": 4.5, "stroke-linecap": "round" }, g);
+        if (i === last && !state.winner) svg("circle", { cx: x, cy: y, r: 5.5, fill: "#FFFFFF", stroke: "var(--outline)", "stroke-width": 2 }, g);
+        if (i === last && fresh) tile.parentNode.classList.add("drop");
+      } else if (labels) {
+        const t = svg("text", { x, y: y + 5, "text-anchor": "middle", "font-size": 14, "font-family": "system-ui, sans-serif", "font-weight": 700, fill: "#C7B48A" }, g);
+        t.textContent = coord;
+      }
+      if (v === "." && act) {
+        g.addEventListener("click", () => tap(i));
+        g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tap(i); } });
+      }
+    }
+    lastDrawnMoves = moves.length;
+  }
+
+  // ---------- the one status line ----------
+  function statusText() {
+    if (!state) return mode === "online" && !loaded ? "Opening the game…" : "Join your red sides before blue.";
+    const n = state.n, me = viewer();
+    const lc = (p) => COLOR[p].toLowerCase();
+    if (state.winner) {
+      const p = state.winner;
+      if (me === p) return "You joined your sides!";
+      return `${COLOR[p]} joined its sides.`;
+    }
+    if (mode === "online" && !me) return "Two people are playing. You're watching.";
+    if (mode === "online" && !bothSeated()) return `You're ${lc(me)}. Invite a friend to play blue.`.replace("blue", lc(other(me)));
+    const left = (p) => need(state.cells, n, p);
+    const say = (p) => (left(p) === Infinity ? "is blocked" : `needs ${left(p)}`);
+    if (me) {
+      const mine = left(me), theirs = left(other(me));
+      const yourTurn = state.turn === me;
+      if (state.moves.length === 0) return yourTurn ? `Join your ${lc(me)} sides before ${lc(other(me))}.` : `${COLOR[other(me)]} goes first. You're ${lc(me)}.`;
+      const you = mine === Infinity ? "You're blocked" : `You need ${mine} more`;
+      const line = `${you}. ${COLOR[other(me)]} ${theirs === Infinity ? "is blocked" : `needs ${theirs}`}.`;
+      return yourTurn ? line : `${COLOR[other(me)]}'s turn. ${line}`;
+    }
+    if (state.moves.length === 0) return `${COLOR[state.turn]} first. Join your sides!`;
+    return `${COLOR[state.turn]}'s turn. Red ${say("r")}, Blue ${say("b")}.`;
+  }
+
+  // ---------- menu ----------
+  function item(label, fn, current) {
+    const b = document.createElement("button");
+    b.className = "item"; b.type = "button"; b.textContent = label;
+    if (current) b.setAttribute("aria-current", "true");
+    b.addEventListener("click", () => { closeMenu(); fn(); });
+    return b;
+  }
+  function buildMenu() {
+    const m = $("menu"); m.replaceChildren();
+    m.append(item("Play another round", () => newGame()));
+    const sep = document.createElement("div"); sep.className = "sep"; m.append(sep);
+    if (db0) m.append(item("Play on two phones", startOnline, mode === "online"));
+    m.append(item("Play solo", startRobot, mode === "robot"));
+    if (mode === "online" && state && !mySeat() && bothSeated()) {
+      m.append(item("Take red's place", () => takeSeat("r")));
+      m.append(item("Take blue's place", () => takeSeat("b")));
+    }
+  }
+  function openMenu() { buildMenu(); $("menu").hidden = false; $("menubtn").setAttribute("aria-expanded", "true"); const f = $("menu").querySelector("button"); if (f) f.focus(); }
+  function closeMenu() { $("menu").hidden = true; $("menubtn").setAttribute("aria-expanded", "false"); }
+  $("menubtn").addEventListener("click", () => ($("menu").hidden ? openMenu() : closeMenu()));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
+  document.addEventListener("click", (e) => { if (!$("menu").hidden && !e.target.closest("#menu") && !e.target.closest("#menubtn")) closeMenu(); });
+
+  // ---------- render ----------
+  function render() {
+    drawBoard();
+    $("status").textContent = statusText();
+    const u = $("undo");
+    const reset = state && state.winner;
+    u.disabled = !(mode !== "online" || mySeat());
+    if (confirmNew) $("status").textContent = "Tap again to start a new round.";
+    $("again").hidden = !(reset && (mode !== "online" || mySeat()));
+    const waiting = mode === "online" && loaded && mySeat() && !bothSeated();
+    $("invite").hidden = !waiting;
+    $("practice").hidden = !waiting;
+    $("friend").hidden = !(mode === "robot" && db0);
+    if (!waiting) $("invitelink").hidden = true;
+    if (!$("menu").hidden) buildMenu();
+  }
+  $("again").addEventListener("click", () => newGame());
+  $("practice").addEventListener("click", startRobot);
+  $("friend").addEventListener("click", startOnline);
+  // The page runs inside claude.ai, so its own address isn't the one to send. Use the artifact's link.
+  const GAME_LINK = location.origin + location.pathname + "#" + table;
+  $("invite").addEventListener("click", () => {
+    const show = (msg) => { const n = $("invitelink"); n.textContent = msg; n.hidden = false; };
+    const fallback = () => show("Copy this link and send it on WhatsApp: " + GAME_LINK);
+    try {
+      navigator.clipboard.writeText(GAME_LINK).then(() => { $("invite").textContent = "Link copied!"; show("Paste it in your WhatsApp chat. " + GAME_LINK); setTimeout(() => { $("invite").textContent = "Invite a friend"; }, 2500); }, fallback);
+    } catch { fallback(); }
+  });
+  // The round arrow starts a new round for both players. Mid-game it asks for a second tap first.
+  let confirmNew = false, confirmTimer = null;
+  $("undo").addEventListener("click", () => {
+    if (!state || state.winner || state.moves.length === 0 || confirmNew) { confirmNew = false; clearTimeout(confirmTimer); newGame(); return; }
+    confirmNew = true; render();
+    confirmTimer = setTimeout(() => { confirmNew = false; render(); }, 3000);
+  });
+
+  // ---------- connect ----------
+  async function start() {
+    const claude = window.claude;
+    if (!claude || !claude.use) return startRobot();
+    const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+    if (!db) return startRobot();
+    db0 = db; mode = "online";
+    // Seats belong to a device, not an account, so two phones signed in to the same Claude account still get Red and Blue.
+    myId = localId();
+    ref = db.doc("hex/" + table);
+    const timer = setTimeout(() => { if (!loaded) net("Can't reach the game yet. Check the internet connection; it will keep trying."); }, 10000);
+    ref.onSnapshot((snap) => {
+      const firstLive = !loaded && !snap.metadata.fromCache;
+      if (!snap.metadata.fromCache) { loaded = true; clearTimeout(timer); net(""); }
+      shared = snap.exists && snap.data().n === 5 ? clone(snap.data()) : null;   // older 6x6/7x7 boards start fresh
+      if (mode === "online") { state = shared; render(); if (firstLive) autoSeat(); }
+    }, () => { clearTimeout(timer); net("The game connection stopped. Reload the page to reconnect."); });
+    render();
+  }
+  render();
+  start().catch(() => startRobot());
+})();
+</script>
+</body>
+</html>

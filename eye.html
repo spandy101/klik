@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<meta property="og:title" content="Klik Bird's Eye View">
+<meta property="og:description" content="Tiny games, together.">
+<meta name="description" content="Tiny games, together.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Klik Bird's Eye View</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Fredoka:wght@600&display=swap">
+<style>
+/* One screen like the Oboe references: menu knob + brand, title with a round knob, the board, one status line. Single look on purpose. */
+:root {
+  --felt: #D7E8DF;
+  --felt-stripe: #CDE1D6;
+  --knob: #5E8F7A;
+  --outline: #10291F;
+  --cream: #FFF5E1;
+  --gold: #D9A53A;
+  --gold-deep: #A87A1E;
+  --red: #EE6A5A;
+  --red-deep: #C24A3C;
+  --blue: #3550A8;
+  --blue-deep: #243A80;
+  --yellow: #F2C14E;
+  --green: #4FA36B;
+  --muted: #45685A;
+  --ink: #10291F;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body {
+  margin: 0; color: var(--ink); font-family: var(--display); font-size: 18px; line-height: 1.4;
+  background-color: var(--felt);
+  background-image: repeating-linear-gradient(135deg, var(--felt) 0 14px, var(--felt-stripe) 14px 17px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 20px; box-sizing: border-box;
+}
+.wrap { max-width: 560px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; position: relative; }
+.top { display: flex; align-items: center; gap: 16px; }
+.brand { font-family: "Fredoka", "Nunito", "Arial Rounded MT Bold", system-ui, sans-serif; font-weight: 600; font-size: 2.3rem; line-height: 1; letter-spacing: -.02em; color: var(--ink); display: inline-flex; align-items: baseline; padding-top: .2em; }
+.brand .i { position: relative; }
+.brand .i svg { position: absolute; left: 50%; top: .02em; width: .5em; height: .5em; transform: translate(-50%, -42%); }
+.knob { flex: none; width: 54px; height: 54px; border-radius: 50%; border: 3px solid var(--outline); background: var(--knob); color: var(--cream); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 3px 4px 0 var(--outline); padding: 0; }
+.knob:active { transform: translate(2px, 3px); box-shadow: 1px 1px 0 var(--outline); }
+.knob:disabled { opacity: .45; cursor: default; }
+.knob:focus-visible, .item:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.knob svg { width: 26px; height: 26px; }
+.game { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 18px; padding-block: 24px 40px; }
+.titlerow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+h1 { font-weight: 700; font-size: 2.3rem; margin: 0; line-height: 1; }
+.status { font-weight: 500; font-size: 1.4rem; text-align: center; margin: 0; min-height: 2.8em; text-wrap: balance; }
+.menu { position: absolute; top: 66px; left: 0; z-index: 5; width: min(320px, 100%); background: var(--felt); border: 3px solid var(--outline); border-radius: 20px; box-shadow: 4px 6px 0 var(--outline); padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+.menu[hidden] { display: none; }
+.item { font: inherit; font-size: 1.15rem; text-align: left; color: var(--ink); background: none; border: 0; border-radius: 12px; padding: 12px 14px; cursor: pointer; }
+.item:hover { background: var(--felt-stripe); }
+.item[aria-current="true"]::after { content: "  ✓"; color: var(--gold); }
+.sep { height: 2px; background: var(--outline); margin: 4px 8px; opacity: .6; }
+.again { align-self: center; font: inherit; font-weight: 700; font-size: 1.25rem; min-height: 58px; padding: 10px 28px; border-radius: 999px; border: 3px solid var(--outline); background: var(--gold); color: var(--outline); cursor: pointer; box-shadow: 3px 4px 0 var(--outline); }
+.again:active { transform: translate(2px, 3px); box-shadow: 1px 1px 0 var(--outline); }
+.again:focus-visible { outline: 4px solid var(--cream); outline-offset: 3px; }
+.btnrow { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.btnrow:not(:has(button:not([hidden]))) { display: none; }
+.btnrow .again { font-size: 1.1rem; padding: 10px 22px; }
+.again.alt { background: var(--cream); }
+.note { color: var(--muted); font-size: .95rem; margin: 0; text-align: center; overflow-wrap: anywhere; }
+.pop { animation: pop .28s ease-out; transform-box: fill-box; transform-origin: center; }
+@keyframes pop { from { transform: scale(.6); opacity: .3; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .pop { animation: none; } }
+@media (max-width: 400px) { h1 { font-size: 2rem; } .status { font-size: 1.25rem; } .brand { font-size: 2rem; } }
+#scene { width: 100%; max-width: 250px; align-self: center; height: auto; display: block; }
+.opts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 420px) { .opts { grid-template-columns: repeat(2, 1fr); } }
+.opt { position: relative; font: inherit; background: var(--cream); border: 3px solid var(--outline); border-radius: 16px; box-shadow: 3px 4px 0 var(--outline); padding: 10px 8px; cursor: pointer; min-height: 72px; }
+.opt svg { width: 100%; height: auto; display: block; }
+.opt:disabled { cursor: default; }
+.opt:not(:disabled):hover { background: #FFFFFF; }
+.opt:not(:disabled):active { transform: translate(2px, 3px); box-shadow: 1px 1px 0 var(--outline); }
+.opt:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.opt.mine { background: #FFE9A8; }
+.opt.right { background: #CDEBCF; border-color: #1F6B3A; box-shadow: 3px 4px 0 #1F6B3A; }
+.opt.wrong { background: #F6CFC9; }
+.tag { position: absolute; left: 50%; bottom: -12px; transform: translateX(-50%); white-space: nowrap; font-size: .8rem; font-weight: 700; background: var(--outline); color: var(--cream); border-radius: 999px; padding: 2px 10px; }
+.game { gap: 12px; padding-block: 8px 24px; }
+.opt { padding: 8px 6px; }
+
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="klik-sync.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <button class="knob" id="menubtn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg>
+    </button>
+    <span class="brand" role="img" aria-label="Klik"><span>k</span><span>l</span><span class="i">ı<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2 C22 14 26 18 38 20 C26 22 22 26 20 38 C18 26 14 22 2 20 C14 18 18 14 20 2 Z" fill="#D9A53A" stroke="#10291F" stroke-width="2.5" stroke-linejoin="round"/></svg></span><span>k</span></span>
+  </div>
+  <div class="menu" id="menu" hidden></div>
+  <div class="game">
+    <div class="titlerow">
+      <h1>Bird's Eye View</h1>
+      <button class="knob" id="roundbtn" type="button" aria-label="New round">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v5h5"/></svg>
+      </button>
+    </div>
+    <svg id="scene" role="img" aria-label="A stack of coloured cubes"></svg>
+    <div class="opts" id="opts"></div>
+    <p class="status" id="status" role="status" aria-live="polite">Opening the game…</p>
+    <div class="btnrow">
+      <button class="again" id="invite" type="button" hidden>Invite a friend</button>
+      <button class="again alt" id="practice" type="button" hidden>Play solo</button>
+      <button class="again alt" id="friend" type="button" hidden>Play with a friend</button>
+    </div>
+    <p class="note" id="invitelink" hidden></p>
+    <button class="again" id="again" type="button" hidden>Play another round?</button>
+    <p class="note" id="net" hidden></p>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const other = (p) => (p === "a" ? "b" : "a");
+  const table = (location.hash.slice(1).replace(/[^A-Za-z0-9-]/g, "") || "main").slice(0, 40);
+  const SVGNS = "http://www.w3.org/2000/svg";
+  function svg(tag, attrs, parent) { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.append(e); return e; }
+  const rnd = (n) => Math.floor(Math.random() * n);
+  const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  // ---------- shared shell state ----------
+  let mode = "loading";            // "online" | "practice"
+  let state = null, shared = null, ref = null, db0 = null, myId = null, loaded = false;
+  let chain = Promise.resolve(), botTimer = null;
+
+  function localId() {
+    try { let v = localStorage.getItem("klik-id"); if (!v) { v = "p" + Math.random().toString(36).slice(2, 10); localStorage.setItem("klik-id", v); } return v; }
+    catch { return "p" + Math.random().toString(36).slice(2, 10); }
+  }
+  function net(text) { $("net").textContent = text || ""; $("net").hidden = !text; }
+  const mySeat = () => !state ? null : mode === "practice" ? "a" : state.seats.a && state.seats.a.id === myId ? "a" : state.seats.b && state.seats.b.id === myId ? "b" : null;
+  const bothSeated = () => !!(state && state.seats.a && state.seats.b);
+  const watching = () => mode === "online" && loaded && state && !mySeat() && bothSeated();
+  const waitingForFriend = () => mode === "online" && loaded && mySeat() && !bothSeated();
+
+  function commit(next) {
+    state = next; render();
+    if (mode !== "online" || !ref) return;
+    chain = chain.then(() => ref.set(next)).then(() => net("")).catch((e) => {
+      net(e && (e.code === "invalid_argument" || e.code === "permission_denied" || e.code === "not_granted")
+        ? "You can watch but not play. Ask the person who sent this game for Contributor access."
+        : "That move didn't save. Check the internet connection and try again.");
+    });
+  }
+  function update(fn) { if (!state) return; const s = clone(state); if (fn(s) === false) return; commit(s); scheduleBot(); }
+
+  // ---------- Bird's Eye View: both guess privately, then reveal ----------
+  const TOTAL = 5, COLORS = "RBYG";
+  const SHADE = { R: ["#EE6A5A", "#D4574A", "#B5463B"], B: ["#6F8EE3", "#5574CC", "#4460B0"], Y: ["#F2C14E", "#DBA93A", "#BF912C"], G: ["#5DB37A", "#4A9C66", "#3B8455"] };
+  const rot = (t) => { const o = []; for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) o[r * 3 + c] = t[(2 - c) * 3 + r]; return o.join(""); };
+  const flip = (t) => { const o = []; for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) o[r * 3 + c] = t[c * 3 + r]; return o.join(""); };
+  function swapTwo(t) {
+    for (let k = 0; k < 50; k++) { const i = rnd(9), j = rnd(9); if (t[i] !== t[j]) { const a = t.split(""); [a[i], a[j]] = [a[j], a[i]]; return a.join(""); } }
+    return t;
+  }
+  function puzzle() {
+    for (;;) {
+      const h = [], col = [];
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+        const cap = Math.min(r ? h[(r - 1) * 3 + c] : 3, c ? h[r * 3 + c - 1] : 3);
+        h.push(r === 0 && c === 0 ? 2 + rnd(2) : Math.min(cap, rnd(4)));
+        col.push(COLORS[rnd(4)]);
+      }
+      const top = h.map((v, i) => (v ? col[i] : ".")).join("");
+      if (h.filter(Boolean).length < 6 || new Set(top.replace(/\./g, "")).size < 3) continue;
+      const pool = shuffle([rot(top), flip(top), rot(rot(top)), swapTwo(top), swapTwo(top), rot(flip(top))]);
+      const wrong = [];
+      for (const t of pool) if (t !== top && !wrong.includes(t) && wrong.length < 3) wrong.push(t);
+      if (wrong.length < 3) continue;
+      const options = shuffle([top, ...wrong]);
+      return { h, col: col.join(""), options, answer: options.indexOf(top) };
+    }
+  }
+  const G = {
+    key: "eye",
+    seatName: { a: "player 1", b: "player 2" },
+    practiceLabel: "Play solo",
+    practiceB: false,
+    intro: "Which one is the view from above?",
+    valid: (d) => d && d.v === 1 && d.puzzle && Array.isArray(d.puzzle.options),
+    fresh(prev) {
+      return { v: 1, round: 1, puzzle: puzzle(), picks: { a: null, b: null }, revealed: false, finished: false, score: { a: 0, b: 0 },
+               seats: prev ? clone(prev.seats) : { a: null, b: null } };
+    },
+    started: (s) => s.round > 1 || s.picks.a != null || s.picks.b != null,
+    over: (s) => s.revealed,
+    done: (s) => s.finished,
+    againText: (s) => (s.finished ? "Play again?" : "Next puzzle"),
+    again() {
+      if (state.finished) return newRound();
+      update((s) => { if (!s.revealed) return false; s.round++; s.puzzle = puzzle(); s.picks = { a: null, b: null }; s.revealed = false; });
+    },
+    waitText: () => "Invite a friend. You'll both guess, then reveal together.",
+    status() {
+      const s = state, me = mySeat(), fr = other(me), solo = mode === "practice";
+      const round = `Round ${s.round} of ${TOTAL}.`;
+      if (s.revealed) {
+        const mine = s.picks[me] === s.puzzle.answer, theirs = s.picks[fr] === s.puzzle.answer;
+        if (solo) {
+          const res = mine ? "Right!" : "Not quite.";
+          return s.finished ? `${res} You got ${s.score.a} of ${TOTAL}.` : `${res} ${s.score.a} of ${s.round} so far.`;
+        }
+        const res = mine && theirs ? "You both got it!" : mine ? "You got it. Your friend didn't." : theirs ? "Your friend got it. You didn't." : "Neither of you got it.";
+        const tally = `You ${s.score[me]}, friend ${s.score[fr]}.`;
+        if (!s.finished) return `${res} ${tally}`;
+        const end = s.score[me] === s.score[fr] ? "A tie!" : s.score[me] > s.score[fr] ? "You win!" : "Your friend wins!";
+        return `${res} Final: ${tally} ${end}`;
+      }
+      if (s.picks[me] != null) return "Locked in. Waiting for your friend.";
+      if (!solo && s.picks[fr] != null) return `Your friend has locked in. ${round} Your pick?`;
+      return `${round} Which one is the view from above?`;
+    },
+    canPick() {
+      const s = state, me = mySeat();
+      if (!s || s.revealed || !me || s.picks[me] != null) return false;
+      return mode === "practice" || bothSeated();
+    },
+    draw() {
+      drawScene();
+      drawOptions();
+    },
+  };
+  // isometric helpers: x across, y down; the back corner of the 3x3 floor is at the top.
+  const W = 34, HH = 19, H = 38;
+  const P = (r, c, z) => [(c - r) * W, (c + r) * HH - z * H];
+  const pts = (arr) => arr.map((p) => p.map((v) => v.toFixed(1)).join(",")).join(" ");
+  function drawScene() {
+    const sc = $("scene"); sc.replaceChildren();
+    sc.setAttribute("viewBox", `${-3 * W - 16} ${-4 * H - 10} ${6 * W + 40} ${4 * H + 6 * HH + 34}`);
+    const p = state && state.puzzle;
+    // base plate
+    const base = [P(-0.15, -0.15, 0), P(-0.15, 3.15, 0), P(3.15, 3.15, 0), P(3.15, -0.15, 0)];
+    svg("polygon", { points: pts(base.map(([x, y]) => [x, y + 12])), fill: "var(--outline)" }, sc);
+    svg("polygon", { points: pts([base[3], base[2], [base[2][0], base[2][1] + 10], [base[3][0], base[3][1] + 10]]), fill: "#C9B79A", stroke: "var(--outline)", "stroke-width": 2.5 }, sc);
+    svg("polygon", { points: pts([base[1], base[2], [base[2][0], base[2][1] + 10], [base[1][0], base[1][1] + 10]]), fill: "#B3A283", stroke: "var(--outline)", "stroke-width": 2.5 }, sc);
+    svg("polygon", { points: pts(base), fill: "#F1E6CF", stroke: "var(--outline)", "stroke-width": 2.5, "stroke-linejoin": "round" }, sc);
+    if (!p) return;
+    const cubes = [];
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) for (let z = 0; z < p.h[r * 3 + c]; z++) cubes.push({ r, c, z, k: p.col[r * 3 + c] });
+    cubes.sort((a, b) => a.r + a.c - (b.r + b.c) || a.z - b.z);
+    const line = { stroke: "var(--outline)", "stroke-width": 2.2, "stroke-linejoin": "round" };
+    for (const { r, c, z, k } of cubes) {
+      const [top, left, right] = SHADE[k];
+      svg("polygon", { points: pts([P(r + 1, c, z + 1), P(r + 1, c + 1, z + 1), P(r + 1, c + 1, z), P(r + 1, c, z)]), fill: left, ...line }, sc);
+      svg("polygon", { points: pts([P(r, c + 1, z + 1), P(r + 1, c + 1, z + 1), P(r + 1, c + 1, z), P(r, c + 1, z)]), fill: right, ...line }, sc);
+      svg("polygon", { points: pts([P(r, c, z + 1), P(r, c + 1, z + 1), P(r + 1, c + 1, z + 1), P(r + 1, c, z + 1)]), fill: top, ...line }, sc);
+    }
+  }
+  function drawOptions() {
+    const box = $("opts"); box.replaceChildren();
+    const s = state; if (!s) return;
+    const me = mySeat(), fr = other(me), live = G.canPick();
+    s.puzzle.options.forEach((t, k) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "opt"; b.disabled = !live;
+      b.setAttribute("aria-label", `Option ${"ABCD"[k]}`);
+      const mine = s.picks[me] === k, theirs = s.revealed && mode !== "practice" && s.picks[fr] === k;
+      if (mine) b.classList.add("mine");
+      if (s.revealed && k === s.puzzle.answer) b.classList.add("right");
+      if (s.revealed && mine && k !== s.puzzle.answer) b.classList.add("wrong");
+      const g = svg("svg", { viewBox: `${-3 * W - 6} ${-6} ${6 * W + 12} ${6 * HH + 12}`, "aria-hidden": "true" });
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+        const v = t[r * 3 + c];
+        svg("polygon", { points: pts([P(r, c, 0), P(r, c + 1, 0), P(r + 1, c + 1, 0), P(r + 1, c, 0)]), fill: v === "." ? "#F1E6CF" : SHADE[v][0], stroke: "var(--outline)", "stroke-width": 2.5, "stroke-linejoin": "round" }, g);
+      }
+      b.append(g);
+      const tags = [];
+      if (mine) tags.push(s.revealed ? "You" : "Your pick");
+      if (theirs) tags.push("Friend");
+      if (tags.length) { const tg = document.createElement("span"); tg.className = "tag"; tg.textContent = tags.join(" + "); b.append(tg); }
+      if (live) b.addEventListener("click", () => pick(k));
+      box.append(b);
+    });
+  }
+  function pick(k) {
+    const me = mySeat();
+    update((s) => {
+      if (s.revealed || s.picks[me] != null) return false;
+      s.picks[me] = k;
+      if (mode === "practice" || (s.picks.a != null && s.picks.b != null)) {
+        s.revealed = true;
+        for (const p of ["a", "b"]) if (s.picks[p] === s.puzzle.answer) s.score[p]++;
+        if (s.round >= TOTAL) s.finished = true;
+      }
+    });
+  }
+
+
+  // ---------- seats and rounds ----------
+  function newRound() {
+    clearTimeout(botTimer);
+    const s = G.fresh(state);
+    commit(s); scheduleBot();
+  }
+  function takeSeat(seat) {
+    const s = state ? clone(state) : G.fresh(null);
+    for (const k of ["a", "b"]) if (s.seats[k] && s.seats[k].id === myId) s.seats[k] = null;
+    s.seats[seat] = { id: myId };
+    commit(s);
+  }
+  function autoSeat() {
+    if (mode !== "online" || !loaded || mySeat()) return;
+    if (!state) return takeSeat("a");
+    if (!state.seats.a) return takeSeat("a");
+    if (!state.seats.b) return takeSeat("b");
+  }
+  function scheduleBot() {
+    clearTimeout(botTimer);
+    if (mode !== "practice" || !G.bot || !state) return;
+    const step = G.bot(state);
+    if (!step) return;
+    botTimer = setTimeout(() => { if (mode === "practice") update(step); }, G.botDelay || 650);
+  }
+  function startPractice() { clearTimeout(botTimer); mode = "practice"; state = G.fresh(null); state.seats = { a: { id: "me" }, b: G.practiceB === false ? null : { id: "bot" } }; render(); scheduleBot(); }
+  function startOnline() { clearTimeout(botTimer); mode = "online"; state = shared; render(); autoSeat(); }
+
+  // ---------- menu ----------
+  function item(label, fn, current) {
+    const b = document.createElement("button");
+    b.className = "item"; b.type = "button"; b.textContent = label;
+    if (current) b.setAttribute("aria-current", "true");
+    b.addEventListener("click", () => { closeMenu(); fn(); });
+    return b;
+  }
+  function buildMenu() {
+    const m = $("menu"); m.replaceChildren();
+    m.append(item("Play another round", newRound));
+    const sep = document.createElement("div"); sep.className = "sep"; m.append(sep);
+    if (db0) m.append(item("Play on two phones", startOnline, mode === "online"));
+    m.append(item(G.practiceLabel, startPractice, mode === "practice"));
+    if (watching()) { m.append(item(`Take ${G.seatName.a}'s place`, () => takeSeat("a"))); m.append(item(`Take ${G.seatName.b}'s place`, () => takeSeat("b"))); }
+  }
+  function openMenu() { buildMenu(); $("menu").hidden = false; $("menubtn").setAttribute("aria-expanded", "true"); const f = $("menu").querySelector("button"); if (f) f.focus(); }
+  function closeMenu() { $("menu").hidden = true; $("menubtn").setAttribute("aria-expanded", "false"); }
+  $("menubtn").addEventListener("click", () => ($("menu").hidden ? openMenu() : closeMenu()));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
+  document.addEventListener("click", (e) => { if (!$("menu").hidden && !e.target.closest("#menu") && !e.target.closest("#menubtn")) closeMenu(); });
+
+  // ---------- render ----------
+  let confirmNew = false, confirmTimer = null;
+  function render() {
+    G.draw();
+    let text;
+    if (!state) text = mode === "online" && !loaded ? "Opening the game…" : G.intro;
+    else if (watching()) text = "Two people are playing. You're watching.";
+    else if (waitingForFriend()) text = G.waitText(mySeat());
+    else text = G.status();
+    $("status").textContent = confirmNew ? "Tap again to start a new round." : text;
+    $("roundbtn").disabled = mode === "online" && !mySeat();
+    $("again").hidden = !(state && G.over(state) && (mode !== "online" || mySeat()));
+    $("again").textContent = (state && G.againText && G.againText(state)) || "Play another round?";
+    $("invite").hidden = !waitingForFriend();
+    $("practice").hidden = !waitingForFriend();
+    $("friend").hidden = !(mode === "practice" && db0);
+    if ($("invite").hidden) $("invitelink").hidden = true;
+    if (!$("menu").hidden) buildMenu();
+  }
+  $("again").addEventListener("click", () => (G.again ? G.again() : newRound()));
+  $("practice").addEventListener("click", startPractice);
+  $("friend").addEventListener("click", startOnline);
+  const GAME_LINK = location.origin + location.pathname + "#" + table;
+  $("invite").addEventListener("click", () => {
+    const show = (msg) => { const n = $("invitelink"); n.textContent = msg; n.hidden = false; };
+    const fallback = () => show("Copy this link and send it on WhatsApp: " + GAME_LINK);
+    try {
+      navigator.clipboard.writeText(GAME_LINK).then(() => { $("invite").textContent = "Link copied!"; show("Paste it in your WhatsApp chat. " + GAME_LINK); setTimeout(() => { $("invite").textContent = "Invite a friend"; }, 2500); }, fallback);
+    } catch { fallback(); }
+  });
+  // The round arrow starts a new round for both players. Mid-round it asks for a second tap first.
+  $("roundbtn").addEventListener("click", () => {
+    if (!state || (G.done ? G.done(state) : G.over(state)) || !G.started(state) || confirmNew) { confirmNew = false; clearTimeout(confirmTimer); newRound(); return; }
+    confirmNew = true; render();
+    confirmTimer = setTimeout(() => { confirmNew = false; render(); }, 3000);
+  });
+
+  // ---------- connect ----------
+  async function start() {
+    const claude = window.claude;
+    if (!claude || !claude.use) return startPractice();
+    const db = await claude.use("db");
+    if (!db) return startPractice();
+    db0 = db; mode = "online";
+    // Seats belong to a device, not an account, so two phones on the same Claude account still get both seats.
+    myId = localId();
+    ref = db.doc(G.key + "/" + table);
+    const timer = setTimeout(() => { if (!loaded) net("Can't reach the game yet. Check the internet connection; it will keep trying."); }, 10000);
+    ref.onSnapshot((snap) => {
+      const firstLive = !loaded && !snap.metadata.fromCache;
+      if (!snap.metadata.fromCache) { loaded = true; clearTimeout(timer); net(""); }
+      shared = snap.exists && G.valid(snap.data()) ? clone(snap.data()) : null;
+      if (mode === "online") { state = shared; render(); if (firstLive) autoSeat(); }
+    }, () => { clearTimeout(timer); net("The game connection stopped. Reload the page to reconnect."); });
+    render();
+  }
+  render();
+  start().catch(() => startPractice());
+})();
+</script>
+</body>
+</html>
