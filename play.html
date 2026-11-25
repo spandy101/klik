@@ -38,8 +38,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: var(--ink); 
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="firebase-config.js?v=b0b388b6"></script>
-<script src="klik-sync.js?v=b0b388b6"></script>
+<script src="firebase-config.js?v=79fe0e76"></script>
+<script src="klik-sync.js?v=79fe0e76"></script>
 </head>
 <body>
 <div class="track" id="track"></div>
@@ -95,6 +95,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: var(--ink); 
   window.addEventListener("resize", () => { $("track").style.transform = `translateY(${-cur * 100}%)`; });
 
   go(wanted >= 0 ? wanted : 0, false);
+  if (location.search) history.replaceState(null, "", location.pathname + location.hash);   // a reload later follows the session, not the old pick
 
   // Keep both phones on the same game.
   window.claude.use("db").then((db) => {
@@ -103,7 +104,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: var(--ink); 
     let first = true;
     ref.onSnapshot((snap) => {
       const d = snap.exists ? snap.data() : null;
-      if (first) { first = false; if (!d) { ref.set({ i: cur, at: Date.now() }).catch(() => {}); return; } }
+      if (first) { first = false; if (!d || (wanted >= 0 && d.i !== wanted)) { ref.set({ i: cur, at: Date.now() }).catch(() => {}); return; } }   // a game picked on the home page wins, and the friend follows
       if (d && typeof d.i === "number" && d.i !== cur) go(d.i, false, true);
     });
   });
