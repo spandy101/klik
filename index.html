@@ -42,7 +42,11 @@ body {
 .wm .i svg { position: absolute; left: 50%; top: .02em; width: .5em; height: .5em; transform: translate(-50%, -42%); animation: twinkle 2.6s ease-in-out infinite; }
 @keyframes twinkle { 0%, 100% { transform: translate(-50%, -42%) scale(1) rotate(0); } 50% { transform: translate(-50%, -42%) scale(1.15) rotate(12deg); } }
 .tag { text-align: center; font-family: var(--display); font-weight: 700; font-size: 1.35rem; margin: -6px 0 6px; text-wrap: balance; }
-.how { text-align: center; color: var(--page-soft); margin: 0 0 6px; text-wrap: balance; }
+.cta { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+.btn { font-family: var(--round); font-weight: 600; font-size: 1.2rem; min-height: 56px; display: grid; place-items: center; border-radius: 999px; border: 3px solid var(--ink); box-shadow: 0 5px 0 var(--ink); color: var(--ink); text-decoration: none; background: var(--gold); }
+.btn.alt { background: var(--card); }
+.btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+.btn:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
 .games { display: flex; flex-direction: column; gap: 14px; }
 .game { color: var(--ink); display: grid; grid-template-columns: 52px 1fr auto; gap: 14px; align-items: center; padding: 12px 14px; border-radius: 18px; border: 3px solid var(--ink); background: var(--card); box-shadow: 0 5px 0 var(--ink); text-decoration: none; }
 .game:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
@@ -59,7 +63,6 @@ body {
 <div class="wrap">
   <div class="wm" role="img" aria-label="klik"><span>k</span><span>l</span><span class="i">ı<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2 C22 14 26 18 38 20 C26 22 22 26 20 38 C18 26 14 22 2 20 C14 18 18 14 20 2 Z" fill="#D9A53A" stroke="#10291F" stroke-width="2.5" stroke-linejoin="round"/></svg></span><span>k</span></div>
   <p class="tag">Tiny games, together.</p>
-  <p class="how">Pick a game and invite a friend. Swipe up to play the next one together.</p>
   <nav class="games" aria-label="Games">
     <a class="game" href="play.html?g=hex">
       <svg viewBox="0 0 44 44" aria-hidden="true"><polygon points="22,3 39,12.5 39,31.5 22,41 5,31.5 5,12.5" fill="#EE6A5A" stroke="#10291F" stroke-width="2.5"/><polygon points="22,13 30,17.5 30,26.5 22,31 14,26.5 14,17.5" fill="#3550A8" stroke="#10291F" stroke-width="2"/></svg>
@@ -78,6 +81,10 @@ body {
       <div><b>Bird's Eye View</b><small>Spot the view from above</small></div><span class="mins">3 min</span>
     </a>
   </nav>
+  <div class="cta">
+    <a class="btn" href="play.html?do=invite">Invite a friend</a>
+    <a class="btn alt" href="play.html?do=solo">Play solo</a>
+  </div>
   <script>
     // keep-session: coming Home from a game with a friend keeps the same session, so picking a game here takes you both there.
     (function () { var c = location.hash.slice(1).replace(/[^A-Za-z0-9-]/g, ""); if (!c) return;

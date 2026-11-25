@@ -63,6 +63,82 @@
     document.addEventListener("keydown", function (e) { if (e.key === "PageDown") feed.KLIK_FEED.step(1); if (e.key === "PageUp") feed.KLIK_FEED.step(-1); });
   }
 
+
+  // ---------- names (feed only) ----------
+  if (feed) document.addEventListener("DOMContentLoaded", function () {
+    var F = feed.KLIK_FEED;
+    var css = document.createElement("style");
+    css.textContent =
+      ".klik-vs{margin:-8px 0 0;text-align:center;font-size:1.05rem;opacity:.95}" +
+      ".klik-vs button{font:inherit;color:inherit;background:none;border:0;padding:2px 4px;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:4px;cursor:pointer}" +
+      ".klik-vs b{font-weight:700}" +
+      ".klik-namecard{position:fixed;inset:0;z-index:20;background:rgba(16,41,31,.72);display:grid;place-items:center;padding:16px}" +
+      ".klik-namecard form{width:min(380px,100%);background:#FFF5E1;color:#10291F;border:3px solid #10291F;border-radius:22px;box-shadow:0 6px 0 #10291F;padding:22px 20px;display:flex;flex-direction:column;gap:12px;font-family:Fredoka,Nunito,system-ui,sans-serif}" +
+      ".klik-namecard h2{margin:0;font-weight:600;font-size:1.4rem;line-height:1.2}" +
+      ".klik-namecard p{margin:0;color:#4B5F56;font-size:1rem}" +
+      ".klik-namecard input{font:inherit;font-size:1.25rem;min-height:54px;padding:6px 14px;border-radius:14px;border:3px solid #10291F;background:#fff;color:#10291F;width:100%;box-sizing:border-box}" +
+      ".klik-namecard .row{display:flex;gap:10px}.klik-namecard button{flex:1;font:inherit;font-size:1.15rem;min-height:52px;border-radius:999px;border:3px solid #10291F;background:#D9A53A;color:#10291F;box-shadow:0 4px 0 #10291F;cursor:pointer}" +
+      ".klik-namecard button.alt{background:#FFF5E1}";
+    document.head.append(css);
+
+    // one card for "your name" (before inviting, or to change it)
+    function askName(title, note, cta, done) {
+      var wrap = document.createElement("div"); wrap.className = "klik-namecard";
+      var f = document.createElement("form");
+      var h = document.createElement("h2"); h.textContent = title;
+      var p = document.createElement("p"); p.textContent = note;
+      var i = document.createElement("input"); i.type = "text"; i.maxLength = 20; i.placeholder = "Your name"; i.setAttribute("aria-label", "Your name"); i.autocomplete = "given-name";
+      i.value = F.myName() || F.savedName();
+      var row = document.createElement("div"); row.className = "row";
+      var cancel = document.createElement("button"); cancel.type = "button"; cancel.className = "alt"; cancel.textContent = "Cancel";
+      var ok = document.createElement("button"); ok.type = "submit"; ok.textContent = cta;
+      row.append(cancel, ok); f.append(h, p, i, row); wrap.append(f); document.body.append(wrap);
+      setTimeout(function () { i.focus(); }, 30);
+      cancel.addEventListener("click", function () { wrap.remove(); });
+      f.addEventListener("submit", function (e) { e.preventDefault(); var n = i.value.trim(); if (!n) { i.focus(); return; } F.setName(n); wrap.remove(); done && done(); });
+    }
+
+    // Ask the inviter's name the first time they tap Invite a friend, then carry on with the invite.
+    var inv = document.getElementById("invite"), passing = false;
+    if (inv) inv.addEventListener("click", function (e) {
+      if (passing || F.myName()) return;
+      e.stopImmediatePropagation(); e.preventDefault();
+      askName("What's your name?", "So your friend knows who's inviting them.", "Save and invite", function () { passing = true; inv.click(); passing = false; });
+    }, true);
+    // Home's "Invite a friend" button lands here: confirm the name (prefilled if known), and the tap on the card sends the invite.
+    window.KLIK_ASK_INVITE = function () {
+      if (!inv) return;
+      askName(F.myName() || F.savedName() ? "Invite a friend" : "What's your name?", "So your friend knows who's inviting them.", "Invite", function () { passing = true; inv.click(); passing = false; });
+    };
+
+    // "You vs Maya" under the title; tap You to change your name
+    var vs = document.createElement("p"); vs.className = "klik-vs"; vs.hidden = true;
+    var tr = document.querySelector(".titlerow"); if (tr) tr.after(vs);
+    function drawVs() {
+      var fr = F.friendName(); vs.hidden = !fr; if (!fr) return;
+      vs.replaceChildren();
+      var me = document.createElement("button"); me.type = "button"; me.textContent = F.myName() || "You"; me.setAttribute("aria-label", "Change your name");
+      me.addEventListener("click", function () { askName("Change your name", "Your friend sees this name.", "Save"); });
+      var b = document.createElement("b"); b.textContent = fr;
+      vs.append(me, " vs ", b);
+    }
+
+    // Status lines say the friend's name instead of their colour, and "your friend" becomes their name.
+    var st = document.getElementById("status"), last = "";
+    function nameStatus() {
+      var fr = F.friendName(); if (!st || !fr) return;
+      var t = st.textContent; if (t === last) return;
+      var n = t;
+      if (/\byou(r|'re)?\b/i.test(t)) n = n.replace(/\b(Red|Blue|Black|White)(?=('s\b| needs| goes| joined| wins| has| is| \d))/g, fr);
+      if (/\byour\b/i.test(t)) n = n.replace(/\bbefore (red|blue|black|white)\b/gi, "before " + fr);
+      n = n.replace(/\bjoined its sides\b/g, "joined their sides").replace(/\bYour friend's\b/g, fr + "'s").replace(/\byour friend's\b/g, fr + "'s").replace(/\bYour friend\b/g, fr).replace(/\byour friend\b/g, fr);
+      last = n; if (n !== t) st.textContent = n;
+    }
+    if (st) new MutationObserver(nameStatus).observe(st, { childList: true, characterData: true, subtree: true });
+    F.onNames(function () { drawVs(); last = ""; nameStatus(); });
+    drawVs(); nameStatus();
+  });
+
   // Tapping the Klik wordmark goes back to the home page.
   document.addEventListener("DOMContentLoaded", function () {
     var b = document.querySelector(".brand");

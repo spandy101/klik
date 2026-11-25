@@ -34,16 +34,30 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: var(--ink); 
   padding: 10px 18px; box-shadow: 0 4px 0 var(--ink); transition: all .25s; pointer-events: none; white-space: nowrap; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; }
 .toast.on { opacity: 1; transform: translate(-50%, 0); }
 .toast.tap { pointer-events: auto; cursor: pointer; }
+.join { position: fixed; inset: 0; z-index: 6; background: rgba(16, 41, 31, .72); display: grid; place-items: center; padding: 16px; }
+.join[hidden] { display: none; }
+.card { width: min(380px, 100%); background: var(--cream); color: var(--ink); border: 3px solid var(--ink); border-radius: 22px; box-shadow: 0 6px 0 var(--ink); padding: 22px 20px; display: flex; flex-direction: column; gap: 14px; font-family: var(--round); }
+.card h2 { margin: 0; font-weight: 600; font-size: 1.45rem; line-height: 1.2; text-wrap: balance; }
+.card input { font: inherit; font-size: 1.25rem; min-height: 54px; padding: 6px 14px; border-radius: 14px; border: 3px solid var(--ink); background: #fff; color: var(--ink); width: 100%; box-sizing: border-box; }
+.card button { font: inherit; font-size: 1.2rem; min-height: 54px; border-radius: 999px; border: 3px solid var(--ink); background: var(--gold); color: var(--ink); box-shadow: 0 4px 0 var(--ink); cursor: pointer; }
+.card input:focus-visible, .card button:focus-visible { outline: 4px solid var(--gold); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .track, .toast, .dot::before { transition: none; } }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="firebase-config.js?v=79fe0e76"></script>
-<script src="klik-sync.js?v=79fe0e76"></script>
+<script src="firebase-config.js?v=7a1cef1c"></script>
+<script src="klik-sync.js?v=7a1cef1c"></script>
 </head>
 <body>
 <div class="track" id="track"></div>
 <button class="toast" id="toast" type="button" tabindex="-1"></button>
+<div class="join" id="join" hidden>
+  <form class="card" id="joinform">
+    <h2 id="jointitle">You're invited to play. What's your name?</h2>
+    <input id="joinname" type="text" maxlength="20" autocomplete="given-name" placeholder="Your name" aria-label="Your name" required>
+    <button type="submit">Join</button>
+  </form>
+</div>
 <script>
 (() => {
   const GAMES = [
@@ -54,8 +68,26 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: var(--ink); 
   ];
   const $ = (id) => document.getElementById(id);
   const code = location.hash.slice(1).replace(/[^A-Za-z0-9-]/g, "").slice(0, 40);   // klik-sync.js makes one if the link had none
+  const action = new URLSearchParams(location.search).get("do");   // from Home: "invite" or "solo"
+  let solo = action === "solo";
   const wanted = GAMES.findIndex((g) => g.key === new URLSearchParams(location.search).get("g"));
   let cur = -1, ref = null, toastTimer = null, hintShown = false;
+
+  // ---------- names: one small shared doc per session, {deviceId: name} ----------
+  const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+  let myId = store.get("klik-id");
+  if (!myId) { myId = "p" + Math.random().toString(36).slice(2, 10); store.set("klik-id", myId); }
+  let names = {}, namesRef = null, namesLoaded = false;
+  const listeners = [];
+  const clean = (n) => String(n || "").replace(/\s+/g, " ").trim().slice(0, 20);
+  const friendName = () => { for (const k in names) if (k !== myId && names[k]) return names[k]; return ""; };
+  function setName(n) {
+    n = clean(n); if (!n) return;
+    store.set("klik-name", n);
+    names = Object.assign({}, names, { [myId]: n });
+    listeners.forEach((f) => { try { f(); } catch {} });
+    if (namesRef) namesRef.set(names).catch(() => {});
+  }
 
   // Build one slide per game. Frames load lazily: the current game and the next one.
   const slides = GAMES.map((g, i) => {
@@ -70,7 +102,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: var(--ink); 
     f.title = GAMES[i].name;
     f.src = `${GAMES[i].key}.html#${code}-${GAMES[i].key}`;   // each game in this session gets its own table, shared by both phones
     f.allow = "clipboard-write; web-share";
+    f.addEventListener("load", () => { if (solo) whenFrame(f, (w) => { const b = w.document.getElementById("practice"); if (b && !b.hidden) { b.click(); return true; } }); });
     s.append(f);
+  }
+  // Wait for something inside a game frame (it needs a moment to load its table), then act once.
+  function whenFrame(f, act, tries = 60) {
+    let w = null; try { w = f.contentWindow; } catch {}
+    if (w && w.document && w.document.readyState !== "loading" && act(w)) return;
+    if (tries > 0) setTimeout(() => whenFrame(f, act, tries - 1), 150);
   }
   function toast(text, onTap) {
     const t = $("toast"); t.textContent = text; t.classList.add("on"); t.classList.toggle("tap", !!onTap);
@@ -84,22 +123,49 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: var(--ink); 
     ensure(i); ensure((i + 1) % GAMES.length);
     $("track").style.transform = `translateY(${-i * 100}%)`;
     document.title = `Klik · ${GAMES[i].name}`;
-    if (fromFriend) toast(`Your friend switched to ${GAMES[i].name}`);
+    if (fromFriend) toast(`${friendName() || "Your friend"} switched to ${GAMES[i].name}`);
     else if (!hintShown) { hintShown = true; const n = GAMES[(i + 1) % GAMES.length].name; toast(`Swipe up for ${n}`, () => step(1)); }
     if (share && ref) ref.set({ i, at: Date.now() }).catch(() => {});
   }
   function step(d) { go(cur + d, true); }
 
-  window.KLIK_FEED = { link: () => location.origin + location.pathname + "#" + code, step, games: GAMES, current: () => cur, jump: (i) => go(i, true) };
+  window.KLIK_FEED = { link: () => location.origin + location.pathname + "#" + code, step, games: GAMES, current: () => cur, jump: (i) => go(i, true),
+    myName: () => names[myId] || "", friendName, setName, savedName: () => store.get("klik-name") || "",
+    onNames: (f) => { listeners.push(f); } };
   document.addEventListener("keydown", (e) => { if (e.key === "ArrowDown" || e.key === "PageDown") step(1); if (e.key === "ArrowUp" || e.key === "PageUp") step(-1); });
   window.addEventListener("resize", () => { $("track").style.transform = `translateY(${-cur * 100}%)`; });
 
   go(wanted >= 0 ? wanted : 0, false);
+  if (action === "invite") whenFrame(slides[cur].firstChild, (w) => { if (w.KLIK_ASK_INVITE) { w.KLIK_ASK_INVITE(); return true; } });
   if (location.search) history.replaceState(null, "", location.pathname + location.hash);   // a reload later follows the session, not the old pick
+
+  // The friend's join card: "Spandana invited you to play. What's your name?"
+  $("joinform").addEventListener("submit", (e) => {
+    e.preventDefault(); const n = clean($("joinname").value); if (!n) { $("joinname").focus(); return; }
+    setName(n); $("join").hidden = true;
+  });
 
   // Keep both phones on the same game.
   window.claude.use("db").then((db) => {
     if (!db) return;
+    namesRef = db.doc("names/" + code);
+    namesRef.onSnapshot((snap) => {
+      const before = friendName();
+      names = snap.exists && snap.data() && typeof snap.data() === "object" ? Object.assign({}, snap.data()) : {};
+      const first = !namesLoaded; namesLoaded = true;
+      // Someone else started this session and this phone isn't named here yet: this phone is the friend joining.
+      if (!names[myId] && friendName()) {
+        const saved = store.get("klik-name");
+        if (saved) setName(saved);
+        else if (first || $("join").hidden) {
+          $("jointitle").textContent = `${friendName()} invited you to play. What's your name?`;
+          $("join").hidden = false; setTimeout(() => $("joinname").focus(), 50);
+        }
+      }
+      const after = friendName();
+      if (after && after !== before && !first) toast(`${after} joined`);
+      listeners.forEach((f) => { try { f(); } catch {} });
+    });
     ref = db.doc("feed/" + code);
     let first = true;
     ref.onSnapshot((snap) => {
