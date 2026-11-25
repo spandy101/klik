@@ -49,7 +49,7 @@
       new MutationObserver(function () {
         if (adding || menu.hidden || menu.querySelector(".klik-games")) return;
         adding = true;
-        var box = document.createElement("div"); box.className = "klik-games";
+        var box = document.createElement("div"); box.className = "klik-games"; box.style.cssText = "display:flex;flex-direction:column;gap:4px";
         var sep = document.createElement("div"); sep.className = "sep"; box.append(sep);
         feed.KLIK_FEED.games.forEach(function (g, i) {
           var b = document.createElement("button"); b.type = "button"; b.className = "item"; b.textContent = g.name;
